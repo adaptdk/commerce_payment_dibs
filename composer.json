@@ -3,6 +3,5 @@
     "description": "This module provides a payment integration for dibs.",
     "type": "drupal-module",
     "license": "GPL-2.0+",
-    "homepage": "https://github.com/adaptdk/commerce_payment_dibs",
-
+    "homepage": "https://github.com/adaptdk/commerce_payment_dibs"
 }
