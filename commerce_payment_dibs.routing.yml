@@ -1,0 +1,24 @@
+commerce_payment_dibs.dibsaccept:
+  path: 'dibsaccept'
+  defaults:
+    _controller: '\Drupal\commerce_payment_dibs\Controller\DibsRedirectController::dibsAccept'
+  options:
+    no_cache: TRUE
+  requirements:
+    _access: 'TRUE'
+commerce_payment_dibs.dibsreturn:
+  path: 'dibsreturn'
+  defaults:
+    _controller: '\Drupal\commerce_payment_dibs\Controller\DibsRedirectController::dibsReturn'
+  options:
+    no_cache: TRUE
+  requirements:
+    _access: 'TRUE'
+commerce_payment_dibs.dibscancel:
+  path: 'dibscancel'
+  defaults:
+    _controller: '\Drupal\commerce_payment_dibs\Controller\DibsRedirectController::dibsCancel'
+  options:
+    no_cache: TRUE
+  requirements:
+    _access: 'TRUE'

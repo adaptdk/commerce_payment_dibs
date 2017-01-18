@@ -1,0 +1,8 @@
+name: commerce_payment_dibs
+type: module
+description: This module provides dibs payment integration for commerce.
+core: 8.x
+package: Commerce
+dependencies:
+  - commerce
+  - commerce_payment
