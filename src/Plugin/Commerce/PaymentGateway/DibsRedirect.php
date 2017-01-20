@@ -47,7 +47,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
-
+    unset($form['redirect_method']);
     $form['merchant'] = [
       '#type' => 'textfield',
       '#title' => $this->t('DIBS Merchant ID'),

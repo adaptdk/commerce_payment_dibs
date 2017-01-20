@@ -43,7 +43,8 @@ class DibsRedirectController implements ContainerInjectionInterface {
    *
    * @throws \Drupal\commerce\Response\NeedsRedirectException
    */
-  public function dibsAccept() {
+  public function dibsCallback() {
+    \Drupal::logger('commerce_payment_dibs')->notice(serialize($this->currentRequest->request));
     $cancel = $this->currentRequest->request->get('cancel');
     $return = $this->currentRequest->request->get('return');
     $total = $this->currentRequest->request->get('total');

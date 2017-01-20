@@ -44,20 +44,21 @@ class DibsPaymentForm extends PaymentOffsiteForm {
     $total = $number_formatter->format($price);
     $total = str_replace(',', '', $total);
     // Set data values.
+    $billingAddress = $billingProfile->address->first()->getValue();
     $data = [
       'orderid' => $order->id(),
       'amount' => $total,
       'currency' => $currencyCode,
       'merchant' => $configuration['merchant'],
-      'billingAddress' => $billingProfile->get('address')->getValue('address'),
-      'billingCity' => $billingProfile->get('address')->getValue('city'),
-      'billingCountry' => $billingProfile->get('address')->getValue('country'),
-      'billingFirstName' => $billingProfile->get('address')->getValue('firstName'),
-      'billingLastName' => $billingProfile->get('address')->getValue('lastName'),
+      'billingAddress' => $billingAddress['address_line1'],
+      'billingCity' => $billingAddress['locality'],
+      'billingCountry' => $billingAddress['locality'],
+      'billingFirstName' => $billingAddress['given_name'],
+      'billingLastName' => $billingAddress['family_name'],
       'email' => $order->getEmail(),
       'acquirerlang' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
-      'accepturl' => Url::fromRoute('commerce_payment_dibs.dibsaccept')->toString(),
-      'callbackurl' => Url::fromRoute('commerce_payment_dibs.dibsreturn')->toString(),
+      'accepturl' => $form['#return_url'],
+      'callbackurl' => Url::fromRoute('commerce_payment_dibs.dibscallback', [], ['absolute' => TRUE])->toString(),
       'cancelurl' => $form['#cancel_url'],
       'md5key' => $this->getMD5Key(
         $configuration['merchant'],
@@ -87,7 +88,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
 //      $data[$key . '-0'] = $item->getTitle();
 //      $data[$key . '-1'] = $item->getTotalPrice();
 //    }
-    if ($configuration['test']) {
+    if ($configuration['mode'] == 'test') {
       $data['test'] = 'true';
     }
     if ($configuration['capturenow']) {
@@ -97,7 +98,9 @@ class DibsPaymentForm extends PaymentOffsiteForm {
     if ($configuration['creditcards']) {
       $cards = $payment_gateway_plugin->getCreditCardTypes();
       foreach ($cards as $card) {
-        $creditcards[] = $card->getId();
+        if ($configuration['creditcards'][$card->getId()]) {
+          $creditcards[] = $card->getId();
+        }
       }
       $data['paytype'] = implode(',', $creditcards);
     }
