@@ -85,6 +85,12 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       '#collapsible' => TRUE,
       '#tree' => TRUE,
     ];
+    $form['prefix'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Order id prefix'),
+      '#description' => $this->t('If you have multiple sites paying via your DIBS account you can add a prefix to avoid duplicate order ids.'),
+      '#default_value' => $this->configuration['prefix'],
+    ];
     $cards = $this->getCreditCardTypes();
     $creditcards = $this->configuration['creditcards'];
     foreach ($cards as $card) {
@@ -111,6 +117,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->configuration['md5key2'] = $values['md5key2'];
       $this->configuration['capturenow'] = $values['capturenow'];
       $this->configuration['creditcards'] = $values['creditcards'];
+      $this->configuration['prefix'] = $values['prefix'];
     }
   }
 
