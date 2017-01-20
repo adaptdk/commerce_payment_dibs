@@ -2,7 +2,9 @@
 
 namespace Drupal\commerce_payment_dibs\Controller;
 
+use Drupal\commerce_order\Entity\Order;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\EntityRepository;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -43,51 +45,21 @@ class DibsRedirectController implements ContainerInjectionInterface {
    *
    * @throws \Drupal\commerce\Response\NeedsRedirectException
    */
-  public function dibsCallback() {
-    \Drupal::logger('commerce_payment_dibs')->notice(serialize($this->currentRequest->request));
-    $cancel = $this->currentRequest->request->get('cancel');
-    $return = $this->currentRequest->request->get('return');
-    $total = $this->currentRequest->request->get('total');
-
-    if ($total > 20) {
-      return new TrustedRedirectResponse($return);
+  public function dibsCallback($order_uuid) {
+    \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
+    $statuscode = $this->currentRequest->get('statuscode');
+    $transact = $this->currentRequest->get('transact');
+    $authkey = $this->currentRequest->get('authkey');
+    $order = EntityRepository::loadEntityByUuid('commerce_order', $order_uuid);
+    $payment = $order->get('payment');
+    $payment->setRemoteId($transact);
+    $payment->setRemoteState($statuscode);
+    if ($statuscode == '1') {
+      // @todo set payment as declined.
+      // $payment->setState();
     }
-
-    return new TrustedRedirectResponse($cancel);
-  }
-
-  /**
-   * Callback method which accepts POST.
-   *
-   * @throws \Drupal\commerce\Response\NeedsRedirectException
-   */
-  public function dibsReturn() {
-    $cancel = $this->currentRequest->request->get('cancel');
-    $return = $this->currentRequest->request->get('return');
-    $total = $this->currentRequest->request->get('total');
-
-    if ($total > 20) {
-      return new TrustedRedirectResponse($return);
-    }
-
-    return new TrustedRedirectResponse($cancel);
-  }
-
-  /**
-   * Callback method which accepts POST.
-   *
-   * @throws \Drupal\commerce\Response\NeedsRedirectException
-   */
-  public function dibsCancel() {
-    $cancel = $this->currentRequest->request->get('cancel');
-    $return = $this->currentRequest->request->get('return');
-    $total = $this->currentRequest->request->get('total');
-
-    if ($total > 20) {
-      return new TrustedRedirectResponse($return);
-    }
-
-    return new TrustedRedirectResponse($cancel);
+    $payment->save();
+    return new Response();
   }
 
 }
