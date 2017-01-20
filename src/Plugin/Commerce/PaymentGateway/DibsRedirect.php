@@ -78,13 +78,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       '#description' => $this->t('Automatically capture the payment once authenticated.'),
       '#default_value' => $this->configuration['capturenow'],
     ];
-    $form['test'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Test'),
-      '#description' => $this->t('Use dibs test mode.'),
-      '#default_value' => $this->configuration['test'],
-    ];
-
     $form['creditcards'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Credit cards'),
@@ -117,7 +110,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->configuration['md5key1'] = $values['md5key1'];
       $this->configuration['md5key2'] = $values['md5key2'];
       $this->configuration['capturenow'] = $values['capturenow'];
-      $this->configuration['test'] = $values['test'];
       $this->configuration['creditcards'] = $values['creditcards'];
     }
   }
@@ -145,12 +137,11 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       'payment_gateway' => $this->entityId,
       'order_id' => $order->id(),
       'test' => $this->getMode() == 'test',
-      'remote_id' => $request->query->get('txn_id'),
-      'remote_state' => $request->query->get('payment_status'),
+      'remote_id' => $request->query->get('transact'),
+      'remote_state' => $request->query->get('statuscode'),
       'authorized' => REQUEST_TIME,
     ]);
     $payment->save();
     drupal_set_message('Payment was processed');
   }
-
 }

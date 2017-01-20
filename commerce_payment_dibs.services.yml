@@ -1,0 +1,5 @@
+services:
+  commerce_payment_dibs.transaction:
+    class: Drupal\commerce_payment_dibs\DibsTransactionService
+    arguments: []
+

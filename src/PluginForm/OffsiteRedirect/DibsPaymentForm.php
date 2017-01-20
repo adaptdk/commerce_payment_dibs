@@ -60,7 +60,8 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       'accepturl' => $form['#return_url'],
       'callbackurl' => Url::fromRoute('commerce_payment_dibs.dibscallback', ['order_uuid' => $order->uuid()], ['absolute' => TRUE])->toString(),
       'cancelurl' => $form['#cancel_url'],
-      'md5key' => $this->getMD5Key(
+      'md5key' => \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
+        $payment,
         $configuration['merchant'],
         $order->id(),
         $currencyCode,
@@ -108,24 +109,9 @@ class DibsPaymentForm extends PaymentOffsiteForm {
     $dispatcher = \Drupal::service('event_dispatcher');
     $event = $dispatcher->dispatch(DibsInformationEvent::PRE_REDIRECT, $evt);
     $data = array_merge($data, $event->getInformation());
+    ksm($form);
+    return $form;
     return $this->buildRedirectForm($form, $form_state, self::DIBS_REDIRECT_URL, $data, self::REDIRECT_POST);
-  }
-
-  protected function getMD5Key($merchant, $orderId, $currency, $amount) {
-    $payment = $this->entity;
-    $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
-    $configuration = $payment_gateway_plugin->getConfiguration();
-    $key1 = $configuration['md5key1'];
-    $key2 = $configuration['md5key2'];
-    $parameters = [
-      'merchant' => $merchant,
-      'orderid' => $orderId,
-      'currency' => $currency,
-      'amount' => $amount,
-    ];
-
-    $parameter_string = http_build_query($parameters);
-    return MD5($key2 . MD5($key1 . $parameter_string));
   }
 
 }
