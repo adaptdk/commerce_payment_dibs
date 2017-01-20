@@ -58,6 +58,9 @@ class DibsRedirectController implements ContainerInjectionInterface {
       // @todo set payment as declined.
       // $payment->setState();
     }
+    else {
+      $payment->setAuthorizedTime(REQUEST_TIME);
+    }
     $payment->save();
     return new Response();
   }

@@ -130,16 +130,19 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    * {@inheritdoc}
    */
   public function onReturn(OrderInterface $order, Request $request) {
+    \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+    $transactionId = $request->query->get('transact');
+    $statusCode = $request->query->get('statuscode');
     $payment = $payment_storage->create([
       'state' => 'authorization',
       'amount' => $order->getTotalPrice(),
       'payment_gateway' => $this->entityId,
       'order_id' => $order->id(),
       'test' => $this->getMode() == 'test',
-      'remote_id' => $request->query->get('transact'),
-      'remote_state' => $request->query->get('statuscode'),
-      'authorized' => REQUEST_TIME,
+      'remote_id' => ($transactionId) ? $transactionId : '',
+      'remote_state' => ($statusCode) ? $statusCode: '',
+      'authorized' => ($statusCode != 1) ? REQUEST_TIME : NULL,
     ]);
     $payment->save();
     drupal_set_message('Payment was processed');
