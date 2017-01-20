@@ -45,8 +45,9 @@ class DibsPaymentForm extends PaymentOffsiteForm {
     $total = str_replace(',', '', $total);
     // Set data values.
     $billingAddress = $billingProfile->address->first()->getValue();
+    $orderId = $configuration['prefix'] . $order->id();
     $data = [
-      'orderid' => $configuration['prefix'] . $order->id(),
+      'orderid' => $orderId,
       'amount' => $total,
       'currency' => $currencyCode,
       'merchant' => $configuration['merchant'],
@@ -63,7 +64,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       'md5key' => \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
         $payment,
         $configuration['merchant'],
-        $order->id(),
+        $orderId,
         $currencyCode,
         $total
       ),
