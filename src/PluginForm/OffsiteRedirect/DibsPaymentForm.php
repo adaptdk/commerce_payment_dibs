@@ -46,7 +46,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
     // Set data values.
     $billingAddress = $billingProfile->address->first()->getValue();
     $data = [
-      'orderid' => $order->id(),
+      'orderid' => $configuration['prefix'] . $order->id(),
       'amount' => $total,
       'currency' => $currencyCode,
       'merchant' => $configuration['merchant'],

@@ -39,6 +39,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       'capturenow' => FALSE,
       'test' => FALSE,
       'creditcards' => [],
+      'prefix' => '',
     ] + parent::defaultConfiguration();
   }
 
