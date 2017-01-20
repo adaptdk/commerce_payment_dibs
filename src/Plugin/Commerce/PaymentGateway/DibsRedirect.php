@@ -92,13 +92,13 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       '#description' => $this->t('If you have multiple sites paying via your DIBS account you can add a prefix to avoid duplicate order ids.'),
       '#default_value' => $this->configuration['prefix'],
     ];
-    $cards = $this->getCreditCardTypes();
+    $cards = \Drupal::service('commerce_payment_dibs.transaction')->getCreditCards();
     $creditcards = $this->configuration['creditcards'];
-    foreach ($cards as $card) {
-      $form['creditcards'][$card->getId()] = [
+    foreach ($cards as $key => $card) {
+      $form['creditcards'][$key] = [
         '#type' => 'checkbox',
-        '#title' => $card->getLabel(),
-        '#default_value' => isset($creditcards[$card->getId()]) ? $creditcards[$card->getId()] : 0,
+        '#title' => $card,
+        '#default_value' => isset($creditcards[$key]) ? $creditcards[$key] : 0,
       ];
     }
 
@@ -125,18 +125,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
   /**
    * {@inheritdoc}
    */
-  public function getCreditCardTypes() {
-    $paytypes = $this->pluginDefinition['credit_card_types'];
-    $evt = new DibsPaytypesEvent($paytypes);
-    $dispatcher = \Drupal::service('event_dispatcher');
-    $event = $dispatcher->dispatch(DibsPaytypesEvent::DISCOVER, $evt);
-    $paytypes = array_merge($paytypes, $event->getPaytypes());
-    return array_intersect_key(DibsCreditCard::getTypes(), array_flip($paytypes));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function onReturn(OrderInterface $order, Request $request) {
     \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
@@ -150,9 +138,39 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       'test' => $this->getMode() == 'test',
       'remote_id' => ($transactionId) ? $transactionId : '',
       'remote_state' => ($statusCode) ? $statusCode: '',
-      'authorized' => ($statusCode != 1) ? REQUEST_TIME : NULL,
     ]);
+    if ($statusCode == '1') {
+      // @todo set payment as declined.
+      // $payment->setState();
+    }
+    else {
+      $payment->setAuthorizedTime(REQUEST_TIME);
+    }
     $payment->save();
     drupal_set_message('Payment was processed');
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onNotify(Request $request) {
+    \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
+    $statuscode = $request->get('statuscode');
+    $transact = $request->get('transact');
+    $authkey = $request->get('authkey');
+    $order = EntityRepository::loadEntityByUuid('commerce_order', $order_uuid);
+    $payment = $order->get('payment');
+    $payment->setRemoteId($transact);
+    $payment->setRemoteState($statuscode);
+    if ($statuscode == '1') {
+      // @todo set payment as declined.
+      // $payment->setState();
+    }
+    else {
+      $payment->setAuthorizedTime(REQUEST_TIME);
+    }
+    $payment->save();
+    return;
+  }
+
 }

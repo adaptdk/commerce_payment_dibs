@@ -27,4 +27,20 @@ interface DibsTransactionServiceInterface {
    *   The generated MD5 Key.
    */
   public function getMD5Key(Payment $payment, $merchant, $orderId, $currency, $amount);
+
+  /**
+   * Get the available credit cards.
+   *
+   * @return array
+   *   Returns an array of credit cards.
+   */
+  public function getCreditCards();
+
+  /**
+   * Gets all available credit card types.
+   *
+   * @return array
+   *   The credit card array.
+   */
+  public function getTypes();
 }

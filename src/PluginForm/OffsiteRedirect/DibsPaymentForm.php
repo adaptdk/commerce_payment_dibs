@@ -88,7 +88,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
 //      $count++;
 //      $key = 'ordline' . $count;
 //      $data[$key . '-0'] = $item->getTitle();
-//      $data[$key . '-1'] = $item->getTotalPrice();
+//      $data[$key . '-1'] = $item->getTotalPrice()->getNumber();
 //    }
     if ($configuration['mode'] == 'test') {
       $data['test'] = 'true';
