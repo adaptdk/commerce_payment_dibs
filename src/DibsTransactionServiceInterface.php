@@ -2,6 +2,7 @@
 
 namespace Drupal\commerce_payment_dibs;
 
+use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_payment\Entity\Payment;
 
 /**
@@ -10,6 +11,31 @@ use Drupal\commerce_payment\Entity\Payment;
  * @package Drupal\commerce_payment_dibs
  */
 interface DibsTransactionServiceInterface {
+
+  /**
+   * Process a payment from dibs.
+   *
+   * @param Order $order
+   *   The order to process.
+   * @param number $transactionId
+   *   The transation id.
+   * @param str $statusCode
+   *   The status code.
+   */
+  public function processPayment(Order $order, $transactionId, $statusCode);
+
+  /**
+   * Format a price according to dibs requirements.
+   *
+   * @param number $number
+   *   The number being formatted.
+   * @param number $currencyCode
+   *   The currency code to use for formatting.
+   *
+   * @return number
+   *   The formatted price.
+   */
+  public function formatPrice($number, $currencyCode);
 
   /**
    * Loads the user's reusable payment methods for the given payment gateway.

@@ -4,13 +4,14 @@ namespace Drupal\commerce_payment_dibs;
 
 use Drupal\commerce_payment\Entity\Payment;
 use Drupal\commerce_payment_dibs\Event\DibsCreditCardEvent;
+use Drupal\commerce_order\Entity\Order;
 
 /**
  * Class DibsTransactionService.
  *
  * @package Drupal\commerce_payment_dibs
  */
-class DibsTransactionService implements DibsTransactionServiceInterface {
+class DibsTransactionService extends DefaultPluginManager implements DibsTransactionServiceInterface {
 
   /**
    * @var \Drupal\commerce_payment\Entity\Payment
@@ -18,10 +19,72 @@ class DibsTransactionService implements DibsTransactionServiceInterface {
   protected $paymentGatewayManager;
 
   /**
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+  /**
    * Constructor.
    */
-  public function __construct() {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager) {
+    $this->entityTypeManager = $entity_type_manager;
+  }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function processPayment(Order $order, $transactionId, $statusCode) {
+    if (empty($order->get('payment'))) {
+      $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+      $payment = $payment_storage->create([
+        'state' => 'authorization',
+        'amount' => $order->getTotalPrice(),
+        'payment_gateway' => $this->entityId,
+        'order_id' => $order->id(),
+        'test' => $this->getMode() == 'test',
+        'remote_id' => ($transactionId) ? $transactionId : '',
+        'remote_state' => ($statusCode) ? $statusCode: '',
+      ]);
+      if ($statusCode != '1') {
+        // @todo set payment as declined.
+        // $payment->setState();
+      }
+      else {
+        $payment->setAuthorizedTime(REQUEST_TIME);
+      }
+    }
+    else {
+      $payment = $order->get('payment');
+      $payment->setRemoteId($transactionId);
+      $payment->setRemoteState($statusCode);
+      if ($statusCode == '1') {
+        // @todo set payment as declined.
+        // $payment->setState();
+      }
+      else {
+        $payment->setAuthorizedTime(REQUEST_TIME);
+      }
+    }
+    $payment->save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function formatPrice($number, $currencyCode) {
+    /** @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $currency_storage */
+    $currency_storage = $this->entityTypeManager('entity_type.manager')->getStorage('commerce_currency');
+    /** @var \CommerceGuys\Intl\Formatter\NumberFormatterInterface $number_formatter */
+    $number_formatter = \Drupal::service('commerce_price.number_formatter_factory')->createInstance(NumberFormatterInterface::DECIMAL);
+    $number_formatter->setMaximumFractionDigits(6);
+    $number_formatter->setGroupingUsed(FALSE);
+    /** @var \Drupal\commerce_price\Entity\CurrencyInterface[] $currencies */
+    $currencies = $currency_storage->loadMultiple();
+    $currency = $currencies[$currencyCode];
+    $number_formatter->setMinimumFractionDigits($currency->getFractionDigits());
+    $total = $number_formatter->format($number);
+    $total = str_replace(',', '', $total);
+    return $total;
   }
 
   /**

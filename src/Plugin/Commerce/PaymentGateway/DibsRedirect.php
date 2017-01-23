@@ -2,7 +2,9 @@
 
 namespace Drupal\commerce_payment_dibs\Plugin\Commerce\PaymentGateway;
 
+use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
 use Drupal\commerce_payment_dibs\Event\DibsPaytypesEvent;
 use Drupal\Core\Form\FormStateInterface;
@@ -125,27 +127,30 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    */
   public function onReturn(OrderInterface $order, Request $request) {
     \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
-    $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-    $transactionId = $request->query->get('transact');
-    $statusCode = $request->query->get('statuscode');
-    $payment = $payment_storage->create([
-      'state' => 'authorization',
-      'amount' => $order->getTotalPrice(),
-      'payment_gateway' => $this->entityId,
-      'order_id' => $order->id(),
-      'test' => $this->getMode() == 'test',
-      'remote_id' => ($transactionId) ? $transactionId : '',
-      'remote_state' => ($statusCode) ? $statusCode: '',
-    ]);
-    if ($statusCode == '1') {
-      // @todo set payment as declined.
-      // $payment->setState();
+    // Get status code.
+    $statusCode = $request->get('statuscode');
+    $transact = $request->get('transact');
+    $authkey = $request->get('authkey');
+    $payment = $order->get('payment');
+    $currencyCode = $order->getTotalPrice()->getCurrencyCode();
+    $price = $order->getTotalPrice()->getNumber();
+    $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
+    $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
+    $configuration = $payment_gateway_plugin->getConfiguration();
+    $orderId = $configuration['prefix'] . $order->id();
+    $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
+      $payment,
+      $configuration['merchant'],
+      $orderId,
+      $currencyCode,
+      $total
+    );
+    if ($md5 !== $authkey) {
+      \Drupal::logger('commerce_payment_dibs')->error($this->t('Unable to process payment since authentication keys didn\'t match'), ['orderId' => $orderId]);
+      return;
     }
-    else {
-      $payment->setAuthorizedTime(REQUEST_TIME);
-    }
-    $payment->save();
-    drupal_set_message('Payment was processed');
+    \Drupal::service('commerce_payment_dibs.transaction')->processPayment($order, $transact, $statusCode);
+    return;
   }
 
   /**
@@ -153,44 +158,37 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    */
   public function onNotify(Request $request) {
     \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
-    $order_uuid = $request->get('order-id');
-    $statuscode = $request->get('statuscode');
+    // Get status code.
+    $statusCode = $request->get('statuscode');
     $transact = $request->get('transact');
     $authkey = $request->get('authkey');
-    $statusCode = $request->query->get('statuscode');
-    $order = EntityRepository::loadEntityByUuid('commerce_order', $order_uuid);
-    if (empty($order->get('payment'))) {
-      $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-      $payment = $payment_storage->create([
-        'state' => 'authorization',
-        'amount' => $order->getTotalPrice(),
-        'payment_gateway' => $this->entityId,
-        'order_id' => $order->id(),
-        'test' => $this->getMode() == 'test',
-        'remote_id' => ($transact) ? $transact : '',
-        'remote_state' => ($statusCode) ? $statusCode: '',
-      ]);
-      if ($statusCode == '1') {
-        // @todo set payment as declined.
-        // $payment->setState();
-      }
-      else {
-        $payment->setAuthorizedTime(REQUEST_TIME);
-      }
+    $orderId = $request->get('orderid');
+    if ($orderId) {
+      $order = Order::load($orderId);
     }
     else {
-      $payment = $order->get('payment');
-      $payment->setRemoteId($transact);
-      $payment->setRemoteState($statuscode);
-      if ($statuscode == '1') {
-        // @todo set payment as declined.
-        // $payment->setState();
-      }
-      else {
-        $payment->setAuthorizedTime(REQUEST_TIME);
-      }
+      $order_uuid = $request->get('order-id');
+      $order = EntityRepository::loadEntityByUuid('commerce_order', $order_uuid);
     }
-    $payment->save();
+    $payment = $order->get('payment');
+    $currencyCode = $order->getTotalPrice()->getCurrencyCode();
+    $price = $order->getTotalPrice()->getNumber();
+    $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
+    $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
+    $configuration = $payment_gateway_plugin->getConfiguration();
+    $orderId = $configuration['prefix'] . $order->id();
+    $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
+      $payment,
+      $configuration['merchant'],
+      $orderId,
+      $currencyCode,
+      $total
+    );
+    if ($md5 !== $authkey) {
+      \Drupal::logger('commerce_payment_dibs')->error($this->t('Unable to process payment since authentication keys didn\'t match'), ['orderId' => $order->id()]);
+      return;
+    }
+    \Drupal::service('commerce_payment_dibs.transaction')->processPayment($order, $transact, $statusCode);
     return;
   }
 

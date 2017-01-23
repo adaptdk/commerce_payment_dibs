@@ -5,8 +5,6 @@ namespace Drupal\commerce_payment_dibs\PluginForm\OffsiteRedirect;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm;
 use Drupal\commerce_payment_dibs\Event\DibsInformationEvent;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Url;
-use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
 
 class DibsPaymentForm extends PaymentOffsiteForm {
 
@@ -31,18 +29,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
     // Format price.
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $price = $order->getTotalPrice()->getNumber();
-    /** @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $currency_storage */
-    $currency_storage = \Drupal::service('entity_type.manager')->getStorage('commerce_currency');
-    /** @var \CommerceGuys\Intl\Formatter\NumberFormatterInterface $number_formatter */
-    $number_formatter = \Drupal::service('commerce_price.number_formatter_factory')->createInstance(NumberFormatterInterface::DECIMAL);
-    $number_formatter->setMaximumFractionDigits(6);
-    $number_formatter->setGroupingUsed(FALSE);
-    /** @var \Drupal\commerce_price\Entity\CurrencyInterface[] $currencies */
-    $currencies = $currency_storage->loadMultiple();
-    $currency = $currencies[$currencyCode];
-    $number_formatter->setMinimumFractionDigits($currency->getFractionDigits());
-    $total = $number_formatter->format($price);
-    $total = str_replace(',', '', $total);
+    $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
     // Set data values.
     $billingAddress = $billingProfile->address->first()->getValue();
     $orderId = $configuration['prefix'] . $order->id();
