@@ -110,8 +110,6 @@ class DibsPaymentForm extends PaymentOffsiteForm {
     $dispatcher = \Drupal::service('event_dispatcher');
     $event = $dispatcher->dispatch(DibsInformationEvent::PRE_REDIRECT, $evt);
     $data = array_merge($data, $event->getInformation());
-    ksm($data);
-    return $form;
     return $this->buildRedirectForm($form, $form_state, self::DIBS_REDIRECT_URL, $data, self::REDIRECT_POST);
   }
 
