@@ -59,7 +59,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       'email' => $order->getEmail(),
       'acquirerlang' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
       'accepturl' => $form['#return_url'],
-      'callbackurl' => $payment_gateway_plugin->getNotifyUrl()->toString() . '/' . $order->uuid(), //Url::fromRoute('commerce_payment_dibs.dibscallback', ['order_uuid' => $order->uuid()], ['absolute' => TRUE])->toString(),
+      'callbackurl' => $payment_gateway_plugin->getNotifyUrl()->toString() . '?order-id=' . $order->uuid(), //Url::fromRoute('commerce_payment_dibs.dibscallback', ['order_uuid' => $order->uuid()], ['absolute' => TRUE])->toString(),
       'cancelurl' => $form['#cancel_url'],
       'md5key' => \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
         $payment,

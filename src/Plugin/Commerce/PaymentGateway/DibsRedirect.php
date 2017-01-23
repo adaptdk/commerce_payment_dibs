@@ -153,19 +153,42 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    */
   public function onNotify(Request $request) {
     \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
+    $order_uuid = $request->get('order-id');
     $statuscode = $request->get('statuscode');
     $transact = $request->get('transact');
     $authkey = $request->get('authkey');
+    $statusCode = $request->query->get('statuscode');
     $order = EntityRepository::loadEntityByUuid('commerce_order', $order_uuid);
-    $payment = $order->get('payment');
-    $payment->setRemoteId($transact);
-    $payment->setRemoteState($statuscode);
-    if ($statuscode == '1') {
-      // @todo set payment as declined.
-      // $payment->setState();
+    if (empty($order->get('payment'))) {
+      $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+      $payment = $payment_storage->create([
+        'state' => 'authorization',
+        'amount' => $order->getTotalPrice(),
+        'payment_gateway' => $this->entityId,
+        'order_id' => $order->id(),
+        'test' => $this->getMode() == 'test',
+        'remote_id' => ($transact) ? $transact : '',
+        'remote_state' => ($statusCode) ? $statusCode: '',
+      ]);
+      if ($statusCode == '1') {
+        // @todo set payment as declined.
+        // $payment->setState();
+      }
+      else {
+        $payment->setAuthorizedTime(REQUEST_TIME);
+      }
     }
     else {
-      $payment->setAuthorizedTime(REQUEST_TIME);
+      $payment = $order->get('payment');
+      $payment->setRemoteId($transact);
+      $payment->setRemoteState($statuscode);
+      if ($statuscode == '1') {
+        // @todo set payment as declined.
+        // $payment->setState();
+      }
+      else {
+        $payment->setAuthorizedTime(REQUEST_TIME);
+      }
     }
     $payment->save();
     return;
