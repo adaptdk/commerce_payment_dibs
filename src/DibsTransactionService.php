@@ -3,7 +3,7 @@
 namespace Drupal\commerce_payment_dibs;
 
 use Drupal\commerce_payment\Entity\Payment;
-use Drupal\commerce_payment\PaymentGatewayManager;
+use Drupal\commerce_payment_dibs\Event\DibsCreditCardEvent;
 
 /**
  * Class DibsTransactionService.

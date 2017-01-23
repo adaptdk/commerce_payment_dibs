@@ -59,7 +59,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       'email' => $order->getEmail(),
       'acquirerlang' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
       'accepturl' => $form['#return_url'],
-      'callbackurl' => Url::fromRoute('commerce_payment_dibs.dibscallback', ['order_uuid' => $order->uuid()], ['absolute' => TRUE])->toString(),
+      'callbackurl' => $payment_gateway_plugin->getNotifyUrl()->toString() . '/' . $order->uuid(), //Url::fromRoute('commerce_payment_dibs.dibscallback', ['order_uuid' => $order->uuid()], ['absolute' => TRUE])->toString(),
       'cancelurl' => $form['#cancel_url'],
       'md5key' => \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
         $payment,
@@ -110,6 +110,8 @@ class DibsPaymentForm extends PaymentOffsiteForm {
     $dispatcher = \Drupal::service('event_dispatcher');
     $event = $dispatcher->dispatch(DibsInformationEvent::PRE_REDIRECT, $evt);
     $data = array_merge($data, $event->getInformation());
+    ksm($data);
+    return $form;
     return $this->buildRedirectForm($form, $form_state, self::DIBS_REDIRECT_URL, $data, self::REDIRECT_POST);
   }
 

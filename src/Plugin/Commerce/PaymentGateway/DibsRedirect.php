@@ -7,8 +7,6 @@ use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGateway
 use Drupal\commerce_payment_dibs\Event\DibsPaytypesEvent;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Drupal\commerce_payment_dibs\DibsCreditCard;
-use Drupal\commerce_payment\CreditCardType;
 
 /**
  * Provides the Off-site Redirect payment gateway.
@@ -116,7 +114,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->configuration['account'] = $values['account'];
       $this->configuration['md5key1'] = $values['md5key1'];
       $this->configuration['md5key2'] = $values['md5key2'];
-      $this->configuration['capturenow'] = $values['capturenow'];
+      $this->configuration['capture'] = $values['capturenow'];
       $this->configuration['creditcards'] = $values['creditcards'];
       $this->configuration['prefix'] = $values['prefix'];
     }
