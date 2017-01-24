@@ -1,0 +1,23 @@
+commerce_payment_dibs.dibspayment:
+  path: '/checkout/payment/dibs/{commerce_order}'
+  defaults:
+    _controller: '\Drupal\commerce_payment_dibs\Controller\DibsController::validatePayment'
+  requirements:
+    _custom_access: '\Drupal\commerce_checkout\Controller\CheckoutController::checkAccess'
+    _module_dependencies: commerce_checkout
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+
+commerce_payment_dibs.checkout.return:
+  path: '/checkout/dibs/{commerce_order}/{step}/return'
+  defaults:
+    _controller: '\Drupal\commerce_payment_dibs\Controller\DibsController::returnCheckoutPage'
+  requirements:
+    _custom_access: '\Drupal\commerce_checkout\Controller\CheckoutController::checkAccess'
+    _module_dependencies: commerce_checkout
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order

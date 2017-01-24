@@ -6,9 +6,10 @@ use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
-use Drupal\commerce_payment_dibs\Event\DibsPaytypesEvent;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Url;
 
 /**
  * Provides the Off-site Redirect payment gateway.
@@ -126,12 +127,18 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    * {@inheritdoc}
    */
   public function onReturn(OrderInterface $order, Request $request) {
-    \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
     // Get status code.
     $statusCode = $request->get('statuscode');
     $transact = $request->get('transact');
+    if (!$transact) {
+      \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
+      $url = Url::fromRoute('commerce_payment_dibs.dibspayment', [
+        'commerce_order' => $order->id(),
+      ])->toString();
+      $redirect = new RedirectResponse($url);
+      return $redirect;
+    }
     $authkey = $request->get('authkey');
-    $payment = $order->get('payment');
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $price = $order->getTotalPrice()->getNumber();
     $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
@@ -139,8 +146,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $configuration = $payment_gateway_plugin->getConfiguration();
     $orderId = $configuration['prefix'] . $order->id();
     $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
-      $payment,
-      $configuration['merchant'],
+      $configuration,
       $orderId,
       $currencyCode,
       $total
@@ -170,7 +176,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $order_uuid = $request->get('order-id');
       $order = EntityRepository::loadEntityByUuid('commerce_order', $order_uuid);
     }
-    $payment = $order->get('payment');
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $price = $order->getTotalPrice()->getNumber();
     $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
@@ -178,7 +183,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $configuration = $payment_gateway_plugin->getConfiguration();
     $orderId = $configuration['prefix'] . $order->id();
     $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
-      $payment,
+      $order,
       $configuration['merchant'],
       $orderId,
       $currencyCode,

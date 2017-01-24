@@ -5,6 +5,7 @@ namespace Drupal\commerce_payment_dibs\PluginForm\OffsiteRedirect;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm;
 use Drupal\commerce_payment_dibs\Event\DibsInformationEvent;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 
 class DibsPaymentForm extends PaymentOffsiteForm {
 
@@ -45,17 +46,22 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       'billingLastName' => $billingAddress['family_name'],
       'email' => $order->getEmail(),
       'acquirerlang' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
-      'accepturl' => $form['#return_url'],
+      'accepturl' => Url::fromRoute('commerce_payment_dibs.checkout.return', [
+        'commerce_order' => $order->id(),
+        'step' => 'payment',
+      ], ['absolute' => TRUE])->toString(),
       'callbackurl' => $payment_gateway_plugin->getNotifyUrl()->toString() . '?order-id=' . $order->uuid(), //Url::fromRoute('commerce_payment_dibs.dibscallback', ['order_uuid' => $order->uuid()], ['absolute' => TRUE])->toString(),
       'cancelurl' => $form['#cancel_url'],
       'md5key' => \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
-        $payment,
-        $configuration['merchant'],
+        $configuration,
         $orderId,
         $currencyCode,
         $total
       ),
     ];
+    $data['accepturl'] = str_replace('http://interflora.dev', 'http://c6b29583.ngrok.io', $data['accepturl']);
+    $data['callbackurl'] = str_replace('http://interflora.dev', 'http://c6b29583.ngrok.io', $data['callbackurl']);
+    $data['cancelurl'] = str_replace('http://interflora.dev', 'http://c6b29583.ngrok.io', $data['cancelurl']);
 //    if ($shipments = $order->get('shipments')) {
 //      if (count($shipments) == 1) {
 //        $shipment = $shipments[0];

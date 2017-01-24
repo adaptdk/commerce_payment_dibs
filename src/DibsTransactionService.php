@@ -2,9 +2,11 @@
 
 namespace Drupal\commerce_payment_dibs;
 
-use Drupal\commerce_payment\Entity\Payment;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\commerce_payment_dibs\Event\DibsCreditCardEvent;
 use Drupal\commerce_order\Entity\Order;
+use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
 
 /**
  * Class DibsTransactionService.
@@ -73,15 +75,16 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
    */
   public function formatPrice($number, $currencyCode) {
     /** @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $currency_storage */
-    $currency_storage = $this->entityTypeManager('entity_type.manager')->getStorage('commerce_currency');
+    $currency_storage = $this->entityTypeManager->getStorage('commerce_currency');
     /** @var \CommerceGuys\Intl\Formatter\NumberFormatterInterface $number_formatter */
-    $number_formatter = \Drupal::service('commerce_price.number_formatter_factory')->createInstance(NumberFormatterInterface::DECIMAL);
+    $number_formatter_factory = \Drupal::service('commerce_price.number_formatter_factory');
+    $number_formatter = $number_formatter_factory->createInstance(NumberFormatterInterface::DECIMAL);
     $number_formatter->setMaximumFractionDigits(6);
     $number_formatter->setGroupingUsed(FALSE);
     /** @var \Drupal\commerce_price\Entity\CurrencyInterface[] $currencies */
     $currencies = $currency_storage->loadMultiple();
     $currency = $currencies[$currencyCode];
-    $number_formatter->setMinimumFractionDigits($currency->getFractionDigits());
+    $number_formatter->setMinimumFractionDigits(2);
     $total = $number_formatter->format($number);
     $total = str_replace(',', '', $total);
     return $total;
@@ -90,11 +93,10 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
   /**
    * {@inheritdoc}
    */
-  public function getMD5Key(Payment $payment, $merchant, $orderId, $currency, $amount) {
-    $payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
-    $configuration = $payment_gateway_plugin->getConfiguration();
+  public function getMD5Key($configuration, $orderId, $currency, $amount) {
     $key1 = $configuration['md5key1'];
     $key2 = $configuration['md5key2'];
+    $merchant = $configuration['merchant'];
     $parameters = [
       'merchant' => $merchant,
       'orderid' => $orderId,

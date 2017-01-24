@@ -52,7 +52,7 @@ interface DibsTransactionServiceInterface {
    * @return string
    *   The generated MD5 Key.
    */
-  public function getMD5Key(Payment $payment, $merchant, $orderId, $currency, $amount);
+  public function getMD5Key($configuration, $orderId, $currency, $amount);
 
   /**
    * Get the available credit cards.
