@@ -59,9 +59,6 @@ class DibsPaymentForm extends PaymentOffsiteForm {
         $total
       ),
     ];
-    $data['accepturl'] = str_replace('http://interflora.dev', 'http://c6b29583.ngrok.io', $data['accepturl']);
-    $data['callbackurl'] = str_replace('http://interflora.dev', 'http://c6b29583.ngrok.io', $data['callbackurl']);
-    $data['cancelurl'] = str_replace('http://interflora.dev', 'http://c6b29583.ngrok.io', $data['cancelurl']);
 //    if ($shipments = $order->get('shipments')) {
 //      if (count($shipments) == 1) {
 //        $shipment = $shipments[0];
