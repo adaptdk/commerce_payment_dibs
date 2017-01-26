@@ -88,10 +88,10 @@ class DibsPaymentForm extends PaymentOffsiteForm {
     }
     $creditcards = [];
     if ($configuration['creditcards']) {
-      $cards = $payment_gateway_plugin->getCreditCardTypes();
-      foreach ($cards as $card) {
-        if ($configuration['creditcards'][$card->getId()]) {
-          $creditcards[] = $card->getId();
+      $cards = \Drupal::service('commerce_payment_dibs.transaction')->getCreditCards();
+      foreach ($cards as $id => $card) {
+        if ($configuration['creditcards'][$id]) {
+          $creditcards[] = $id;
         }
       }
       $data['paytype'] = implode(',', $creditcards);
