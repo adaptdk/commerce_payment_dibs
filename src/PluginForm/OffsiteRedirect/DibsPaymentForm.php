@@ -46,6 +46,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       'billingLastName' => $billingAddress['family_name'],
       'email' => $order->getEmail(),
       'acquirerlang' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
+      'calcfee' => 'no',
       'accepturl' => Url::fromRoute('commerce_payment_dibs.checkout.return', [
         'commerce_order' => $order->id(),
         'step' => 'payment',

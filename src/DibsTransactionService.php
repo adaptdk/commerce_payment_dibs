@@ -35,19 +35,20 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
   /**
    * {@inheritdoc}
    */
-  public function processPayment(Order $order, $transactionId, $statusCode) {
-    if (empty($order->get('payment'))) {
+  public function processPayment(Order $order, $transactionId, $statusCode, $payment_gateway_id, $mode) {
+    var_dump($order);
+    if (empty($order->payment)) {
       $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
       $payment = $payment_storage->create([
         'state' => 'authorization',
         'amount' => $order->getTotalPrice(),
-        'payment_gateway' => $this->entityId,
+        'payment_gateway' => $payment_gateway_id,
         'order_id' => $order->id(),
-        'test' => $this->getMode() == 'test',
+        'test' => $mode == 'test',
         'remote_id' => ($transactionId) ? $transactionId : '',
         'remote_state' => ($statusCode) ? $statusCode: '',
       ]);
-      if ($statusCode != '1') {
+      if ($statusCode == '1') {
         // @todo set payment as declined.
         // $payment->setState();
       }
@@ -56,7 +57,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       }
     }
     else {
-      $payment = $order->get('payment');
+      $payment = $order->payment;
       $payment->setRemoteId($transactionId);
       $payment->setRemoteState($statusCode);
       if ($statusCode == '1') {
@@ -68,6 +69,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       }
     }
     $payment->save();
+    drupal_set_message('Payment was processed');
   }
 
   /**
@@ -102,6 +104,23 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       'orderid' => $orderId,
       'currency' => $currency,
       'amount' => $amount,
+    ];
+
+    $parameter_string = http_build_query($parameters);
+    return MD5($key2 . MD5($key1 . $parameter_string));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getAuthKey($configuration, $transaction, $currency, $amount) {
+    $key1 = $configuration['md5key1'];
+    $key2 = $configuration['md5key2'];
+    $merchant = $configuration['merchant'];
+    $parameters = [
+      'transact' => $transaction,
+      'amount' => $amount,
+      'currency' => $currency,
     ];
 
     $parameter_string = http_build_query($parameters);

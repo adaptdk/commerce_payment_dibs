@@ -3,7 +3,6 @@
 namespace Drupal\commerce_payment_dibs;
 
 use Drupal\commerce_order\Entity\Order;
-use Drupal\commerce_payment\Entity\Payment;
 
 /**
  * Interface getMD5Key.
@@ -20,9 +19,9 @@ interface DibsTransactionServiceInterface {
    * @param number $transactionId
    *   The transation id.
    * @param str $statusCode
-   *   The status code.
+   *   The status codeDibsRedirect
    */
-  public function processPayment(Order $order, $transactionId, $statusCode);
+  public function processPayment(Order $order, $transactionId, $statusCode, $payment_gateway_id, $mode);
 
   /**
    * Format a price according to dibs requirements.

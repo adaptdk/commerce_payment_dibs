@@ -6,6 +6,7 @@ use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
+use Drupal\commerce_price\Entity\Currency;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -140,22 +141,23 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     }
     $authkey = $request->get('authkey');
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
+    $currency = Currency::load($currencyCode);
     $price = $order->getTotalPrice()->getNumber();
     $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
     $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
     $configuration = $payment_gateway_plugin->getConfiguration();
     $orderId = $configuration['prefix'] . $order->id();
-    $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
+    $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getAuthKey(
       $configuration,
-      $orderId,
-      $currencyCode,
+      $transact,
+      $currency->getNumericCode(),
       $total
     );
     if ($md5 !== $authkey) {
       \Drupal::logger('commerce_payment_dibs')->error($this->t('Unable to process payment since authentication keys didn\'t match'), ['orderId' => $orderId]);
       return;
     }
-    \Drupal::service('commerce_payment_dibs.transaction')->processPayment($order, $transact, $statusCode);
+    \Drupal::service('commerce_payment_dibs.transaction')->processPayment($order, $transact, $statusCode, $this->entityId, $this->getMode());
     return;
   }
 
@@ -193,7 +195,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       \Drupal::logger('commerce_payment_dibs')->error($this->t('Unable to process payment since authentication keys didn\'t match'), ['orderId' => $order->id()]);
       return;
     }
-    \Drupal::service('commerce_payment_dibs.transaction')->processPayment($order, $transact, $statusCode);
+    \Drupal::service('commerce_payment_dibs.transaction')->processPayment($order, $transact, $statusCode, $this->entityId, $this->getMode());
     return;
   }
 
