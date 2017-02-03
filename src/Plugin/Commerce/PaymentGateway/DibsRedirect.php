@@ -157,7 +157,13 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       \Drupal::logger('commerce_payment_dibs')->error($this->t('Unable to process payment since authentication keys didn\'t match'), ['orderId' => $orderId]);
       return;
     }
-    \Drupal::service('commerce_payment_dibs.transaction')->processPayment($order, $transact, $statusCode, $this->entityId, $this->getMode());
+    \Drupal::service('commerce_payment_dibs.transaction')->processPayment(
+      $order,
+      $transact,
+      $statusCode,
+      $this->entityId,
+      $this->getMode()
+    );
     return;
   }
 
@@ -195,7 +201,13 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       \Drupal::logger('commerce_payment_dibs')->error($this->t('Unable to process payment since authentication keys didn\'t match'), ['orderId' => $order->id()]);
       return;
     }
-    \Drupal::service('commerce_payment_dibs.transaction')->processPayment($order, $transact, $statusCode, $this->entityId, $this->getMode());
+    \Drupal::service('commerce_payment_dibs.transaction')->processPayment(
+      $order,
+      $transact,
+      $statusCode,
+      $this->entityId,
+      $this->getMode()
+    );
     return;
   }
 

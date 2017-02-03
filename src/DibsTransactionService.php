@@ -2,6 +2,7 @@
 
 namespace Drupal\commerce_payment_dibs;
 
+use Drupal\commerce_payment\Entity\Payment;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\commerce_payment_dibs\Event\DibsCreditCardEvent;
@@ -36,8 +37,12 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
    * {@inheritdoc}
    */
   public function processPayment(Order $order, $transactionId, $statusCode, $payment_gateway_id, $mode) {
-    var_dump($order);
-    if (empty($order->payment)) {
+    $query = \Drupal::entityQuery('commerce_payment')
+      ->condition('remote_id', $transactionId)
+      ->condition('order_id', $order->id());
+
+    $payments = $query->execute();
+    if (!empty($payments)) {
       $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
       $payment = $payment_storage->create([
         'state' => 'authorization',
@@ -57,7 +62,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       }
     }
     else {
-      $payment = $order->payment;
+      $payment = Payment::load($payments[0]);
       $payment->setRemoteId($transactionId);
       $payment->setRemoteState($statusCode);
       if ($statusCode == '1') {
