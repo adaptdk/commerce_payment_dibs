@@ -62,7 +62,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       }
     }
     else {
-      $payment = Payment::load($payments[0]);
+      $payment = Payment::load(current($payments));
       $payment->setRemoteId($transactionId);
       $payment->setRemoteState($statusCode);
       if ($statusCode == '1') {
