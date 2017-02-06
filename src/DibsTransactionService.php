@@ -42,7 +42,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       ->condition('order_id', $order->id());
 
     $payments = $query->execute();
-    if (!empty($payments)) {
+    if (empty($payments)) {
       $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
       $payment = $payment_storage->create([
         'state' => 'authorization',
@@ -62,7 +62,8 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       }
     }
     else {
-      $payment = Payment::load(current($payments));
+      $payment_ids = array_keys($payments);
+      $payment = Payment::load(current($payment_ids));
       $payment->setRemoteId($transactionId);
       $payment->setRemoteState($statusCode);
       if ($statusCode == '1') {
