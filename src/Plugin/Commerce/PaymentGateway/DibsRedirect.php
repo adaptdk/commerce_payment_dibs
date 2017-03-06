@@ -36,6 +36,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
   public function defaultConfiguration() {
     return [
       'merchant' => '',
+      'account' => '',
       'md5key1' => '',
       'md5key2' => '',
       'capturenow' => FALSE,
@@ -115,7 +116,9 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     if (!$form_state->getErrors()) {
       $values = $form_state->getValue($form['#parents']);
       $this->configuration['merchant'] = $values['merchant'];
-      $this->configuration['account'] = $values['account'];
+      if (isset($values['account'])) {
+        $this->configuration['account'] = $values['account'];
+      }
       $this->configuration['md5key1'] = $values['md5key1'];
       $this->configuration['md5key2'] = $values['md5key2'];
       $this->configuration['capture'] = $values['capturenow'];
