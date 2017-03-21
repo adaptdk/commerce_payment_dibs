@@ -157,10 +157,12 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $currencyCode,
       $total
     );
-    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([$configuration['merchant'],
+    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([
+      $configuration,
       $orderId,
       $currencyCode,
-      $total]));
+      $total,
+    ]));
     \Drupal::logger('commerce_payment_dibs')->notice($this->t("@md5 & @auth"), ['@md5' => $md5, '@auth' => $authkey]);
     if ($md5 !== $authkey) {
       \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $orderId]);

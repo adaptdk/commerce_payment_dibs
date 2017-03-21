@@ -60,6 +60,12 @@ class DibsPaymentForm extends PaymentOffsiteForm {
         $total
       ),
     ];
+    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([
+      $configuration,
+      $orderId,
+      $currencyCode,
+      $total,
+    ]));
 //    if ($shipments = $order->get('shipments')) {
 //      if (count($shipments) == 1) {
 //        $shipment = $shipments[0];
