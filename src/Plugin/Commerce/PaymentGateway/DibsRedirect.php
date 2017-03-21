@@ -153,17 +153,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $orderId = $configuration['prefix'] . $order->id();
     $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getAuthKey(
       $configuration,
-      $orderId,
-      $currencyCode,
+      $transact,
+      $currency->getNumericCode(),
       $total
     );
-    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([
-      $configuration,
-      $orderId,
-      $currencyCode,
-      $total,
-    ]));
-    \Drupal::logger('commerce_payment_dibs')->notice($this->t("@md5 & @auth"), ['@md5' => $md5, '@auth' => $authkey]);
     if ($md5 !== $authkey) {
       \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $orderId]);
       return NULL;
@@ -199,6 +192,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       return NULL;
     }
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
+    $currency = Currency::load($currencyCode);
     $price = $order->getTotalPrice()->getNumber();
     $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
     $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
@@ -206,15 +200,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $orderId = $configuration['prefix'] . $order->id();
     $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getMD5Key(
       $configuration['merchant'],
-      $orderId,
-      $currencyCode,
+      $transact,
+      $currency->getNumericCode(),
       $total
     );
-    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([$configuration['merchant'],
-      $orderId,
-      $currencyCode,
-      $total]));
-    \Drupal::logger('commerce_payment_dibs')->notice($this->t("@md5 & @auth"), ['@md5' => $md5, '@auth' => $authkey]);
     if ($md5 !== $authkey) {
       \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $order->id()]);
       return NULL;
