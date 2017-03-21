@@ -7,6 +7,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
 use Drupal\commerce_price\Entity\Currency;
+use Drupal\Core\Entity\EntityRepository;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -186,6 +187,9 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     else {
       $order_uuid = $request->get('order-id');
       $order = EntityRepository::loadEntityByUuid('commerce_order', $order_uuid);
+    }
+    if (!$order) {
+      return NULL;
     }
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $price = $order->getTotalPrice()->getNumber();
