@@ -153,7 +153,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $orderId = $configuration['prefix'] . $order->id();
     $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getAuthKey(
       $configuration,
-      $transact,
+      $orderId,
       $currency->getNumericCode(),
       $total
     );
