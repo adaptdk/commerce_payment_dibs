@@ -133,8 +133,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    */
   public function onReturn(OrderInterface $order, Request $request) {
     // Get status code.
-    $statusCode = $request->get('statuscode');
-    $transact = $request->get('transact');
+    $statusCode = $request->query->get('statuscode');
+    $transact = $request->query->get('transact');
     if (!$transact) {
       \Drupal::logger('commerce_payment_dibs')->notice(json_encode($_REQUEST));
       $url = Url::fromRoute('commerce_payment_dibs.dibspayment', [
@@ -143,7 +143,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $redirect = new RedirectResponse($url);
       return $redirect;
     }
-    $authkey = $request->get('authkey');
+    $authkey = $request->query->get('authkey');
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $currency = Currency::load($currencyCode);
     $price = $order->getTotalPrice()->getNumber();
@@ -157,6 +157,11 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $currency->getNumericCode(),
       $total
     );
+    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([$configuration['merchant'],
+      $orderId,
+      $currencyCode,
+      $total]));
+    \Drupal::logger('commerce_payment_dibs')->notice($this->t("@md5 & @auth"), ['@md5' => $md5, '@auth' => $authkey]);
     if ($md5 !== $authkey) {
       \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $orderId]);
       return NULL;
@@ -203,6 +208,11 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $currencyCode,
       $total
     );
+    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([$configuration['merchant'],
+      $orderId,
+      $currencyCode,
+      $total]));
+    \Drupal::logger('commerce_payment_dibs')->notice($this->t("@md5 & @auth"), ['@md5' => $md5, '@auth' => $authkey]);
     if ($md5 !== $authkey) {
       \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $order->id()]);
       return NULL;
