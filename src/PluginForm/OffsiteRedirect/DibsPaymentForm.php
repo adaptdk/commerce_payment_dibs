@@ -59,6 +59,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
         $currencyCode,
         $total
       ),
+      'type' => 'flex',
     ];
     \Drupal::logger('commerce_payment_dibs')->notice(json_encode([
       $configuration,
