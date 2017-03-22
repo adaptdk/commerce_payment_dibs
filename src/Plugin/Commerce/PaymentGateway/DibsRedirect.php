@@ -133,10 +133,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    */
   public function onReturn(OrderInterface $order, Request $request) {
     // Get status code.
-    $statusCode = $request->get('statuscode');
-    $transact = $request->get('transact');
+    $statusCode = $request->query->get('statuscode');
+    $transact = $request->query->get('transact');
     if (!$transact) {
-      \Drupal::logger('commerce_payment_dibs')->notice(json_encode($request->getContent()));
+      \Drupal::logger('commerce_payment_dibs')->error("Transaction not found.");
       $url = Url::fromRoute('commerce_payment_dibs.dibspayment', [
         'commerce_order' => $order->id(),
       ])->toString();
@@ -181,15 +181,23 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    * {@inheritdoc}
    */
   public function onNotify(Request $request) {
-    \Drupal::logger('commerce_payment_dibs')->notice($request->getContent());
-    $response = json_encode($request->getContent());
     // Get status code.
-    $statusCode = $response->statuscode; //$request->get('statuscode');
-    $transact = $response->transact; //$request->get('transact');
-    $authkey = $response->authkey; //$request->get('authkey');
-    $orderId = $response->orderid; //$request->get('orderid');
+    $statusCode = $request->get('statuscode');
+    $transact = $request->get('transact');
+    $authkey = $request->get('authkey');
+    $orderId = $request->get('orderid');
+    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([
+      $statusCode,
+      $transact,
+      $authkey,
+      $orderId,
+    ]));
     if ($orderId) {
       $order = Order::load($orderId);
+      if (!$order) {
+        $orderId = html_entity_decode($orderId);
+        $order = Order::load($orderId);
+      }
     }
     else {
       $order_uuid = $request->get('order-id');
