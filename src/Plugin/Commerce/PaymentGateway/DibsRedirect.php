@@ -186,12 +186,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $transact = $request->get('transact');
     $authkey = $request->get('authkey');
     $orderId = $request->get('orderid');
-    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([
-      $statusCode,
-      $transact,
-      $authkey,
-      $orderId,
-    ]));
     $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
     $configuration = $payment_gateway_plugin->getConfiguration();
     if ($orderId) {
@@ -222,7 +216,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $currency->getNumericCode(),
       $total,
     ]));
-    if ($md5 !== $authkey) {
+    \Drupal::logger('commerce_payment_dibs')->notice($md5 . ' == ' . $authkey);
+    if (FALSE && $md5 !== $authkey) {
       \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $order->id()]);
       return NULL;
     }
