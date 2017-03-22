@@ -192,12 +192,12 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $authkey,
       $orderId,
     ]));
+    $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
+    $configuration = $payment_gateway_plugin->getConfiguration();
     if ($orderId) {
+      $orderId = urldecode($orderId);
+      $orderId = str_replace($configuration['prefix'], '', $orderId);
       $order = Order::load($orderId);
-      if (!$order) {
-        $orderId = html_entity_decode($orderId);
-        $order = Order::load($orderId);
-      }
     }
     else {
       $order_uuid = $request->get('order-id');
@@ -210,9 +210,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $currency = Currency::load($currencyCode);
     $price = $order->getTotalPrice()->getNumber();
     $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
-    $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
-    $configuration = $payment_gateway_plugin->getConfiguration();
-    $orderId = $configuration['prefix'] . $order->id();
     $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getAuthKey(
       $configuration,
       $transact,
