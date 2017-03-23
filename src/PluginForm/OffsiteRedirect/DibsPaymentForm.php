@@ -60,6 +60,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
         $total
       ),
       'type' => 'flex',
+      'decorator' => 'responsive',
     ];
     \Drupal::logger('commerce_payment_dibs')->notice(json_encode([
       $configuration,
