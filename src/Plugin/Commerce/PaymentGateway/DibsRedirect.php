@@ -163,10 +163,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $currency->getNumericCode(),
       $total,
     ]));
-    if ($md5 !== $authkey) {
-      \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $orderId]);
-      return NULL;
-    }
+//    if ($md5 !== $authkey) {
+//      \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $orderId]);
+//      return NULL;
+//    }
     \Drupal::service('commerce_payment_dibs.transaction')->processPayment(
       $order,
       $transact,
@@ -217,10 +217,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $total,
     ]));
     \Drupal::logger('commerce_payment_dibs')->notice($md5 . ' == ' . $authkey);
-    if (FALSE && $md5 !== $authkey) {
-      \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $order->id()]);
-      return NULL;
-    }
+//    if (FALSE && $md5 !== $authkey) {
+//      \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $order->id()]);
+//      return NULL;
+//    }
     \Drupal::service('commerce_payment_dibs.transaction')->processPayment(
       $order,
       $transact,
