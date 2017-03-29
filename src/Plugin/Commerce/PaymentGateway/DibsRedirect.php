@@ -7,7 +7,6 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
 use Drupal\commerce_price\Entity\Currency;
-use Drupal\Core\Entity\EntityRepository;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -195,7 +194,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     }
     else {
       $order_uuid = $request->get('order-id');
-      $order = EntityRepository::loadEntityByUuid('commerce_order', $order_uuid);
+      $order = \Drupal::service('entity.repository')->loadEntityByUuid('commerce_order', $order_uuid);
     }
     if (!$order) {
       return NULL;
@@ -210,12 +209,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $currency->getNumericCode(),
       $total
     );
-    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([
-      $configuration,
-      $transact,
-      $currency->getNumericCode(),
-      $total,
-    ]));
     \Drupal::logger('commerce_payment_dibs')->notice($md5 . ' == ' . $authkey);
 //    if (FALSE && $md5 !== $authkey) {
 //      \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $order->id()]);
