@@ -197,6 +197,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $order = \Drupal::service('entity.repository')->loadEntityByUuid('commerce_order', $order_uuid);
     }
     if (!$order) {
+      \Drupal::logger('DibsFailed')->notice("Order not found.");
+      \Drupal::logger('DibsFailed')->notice(serialize($request->getContent()));
       return NULL;
     }
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
@@ -221,6 +223,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->entityId,
       $this->getMode()
     );
+    if ($order->getState()->getName() == 'draft') {
+      $transition = $order->getState()->getWorkflow()->getTransition('place');
+      $order->getState()->applyTransition($transition);
+    }
     return NULL;
   }
 

@@ -54,11 +54,13 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
         'remote_state' => ($statusCode) ? $statusCode: '',
       ]);
       if ($statusCode == '1') {
-        // @todo set payment as declined.
-        // $payment->setState();
+        $transition = $payment->getState()->getWorkflow()->getTransition('void');
+        $payment->getState()->applyTransition($transition);
       }
       else {
         $payment->setAuthorizedTime(REQUEST_TIME);
+        $transition = $payment->getState()->getWorkflow()->getTransition('authorize');
+        $payment->getState()->applyTransition($transition);
       }
     }
     else {
@@ -68,10 +70,13 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       $payment->setRemoteState($statusCode);
       if ($statusCode == '1') {
         // @todo set payment as declined.
-        // $payment->setState();
+        $transition = $payment->getState()->getWorkflow()->getTransition('void');
+        $payment->getState()->applyTransition($transition);
       }
       else {
         $payment->setAuthorizedTime(REQUEST_TIME);
+        $transition = $payment->getState()->getWorkflow()->getTransition('authorize');
+        $payment->getState()->applyTransition($transition);
       }
     }
     $payment->save();
@@ -131,6 +136,23 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
 
     $parameter_string = http_build_query($parameters);
     return MD5($key2 . MD5($key1 . $parameter_string));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateMac($msg, $hmac_key) {
+    //Decode the hex encoded key.
+    $hmac_key = pack('H*', $hmac_key);
+
+    //Sort the key=>value array ASCII-betically according to the key
+    ksort($msg, SORT_STRING);
+
+    //Create message from sorted array.
+    $msg = urldecode(http_build_query($msg));
+
+    //Calculate and return the SHA-256 HMAC using algorithm for 1 key
+    return hash_hmac("sha256", $msg, $hmac_key);
   }
 
   /**
