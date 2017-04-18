@@ -53,13 +53,13 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
         'remote_id' => ($transactionId) ? $transactionId : '',
         'remote_state' => ($statusCode) ? $statusCode: '',
       ]);
-      if ($statusCode == '1') {
-        $transition = $payment->getState()->getWorkflow()->getTransition('void');
+      if ($statusCode == '2') {
+        $payment->setAuthorizedTime(REQUEST_TIME);
+        $transition = $payment->getState()->getWorkflow()->getTransition('authorize');
         $payment->getState()->applyTransition($transition);
       }
       else {
-        $payment->setAuthorizedTime(REQUEST_TIME);
-        $transition = $payment->getState()->getWorkflow()->getTransition('authorize');
+        $transition = $payment->getState()->getWorkflow()->getTransition('void');
         $payment->getState()->applyTransition($transition);
       }
     }
@@ -68,14 +68,14 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       $payment = Payment::load(current($payment_ids));
       $payment->setRemoteId($transactionId);
       $payment->setRemoteState($statusCode);
-      if ($statusCode == '1') {
-        // @todo set payment as declined.
-        $transition = $payment->getState()->getWorkflow()->getTransition('void');
+      if ($statusCode == '2') {
+        $payment->setAuthorizedTime(REQUEST_TIME);
+        $transition = $payment->getState()->getWorkflow()->getTransition('authorize');
         $payment->getState()->applyTransition($transition);
       }
       else {
-        $payment->setAuthorizedTime(REQUEST_TIME);
-        $transition = $payment->getState()->getWorkflow()->getTransition('authorize');
+        // @todo set payment as declined.
+        $transition = $payment->getState()->getWorkflow()->getTransition('void');
         $payment->getState()->applyTransition($transition);
       }
     }

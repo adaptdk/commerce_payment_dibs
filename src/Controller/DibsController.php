@@ -100,12 +100,12 @@ class DibsController implements ContainerInjectionInterface {
       if ($response) {
         return $response;
       }
-      $redirect_step = $checkout_flow_plugin->getNextStepId();
+      $redirect_step = $checkout_flow_plugin->getNextStepId('payment');
     }
     catch (PaymentGatewayException $e) {
       \Drupal::logger('commerce_payment')->error($e->getMessage());
       drupal_set_message(t('Payment failed at the payment server. Please review your information and try again.'), 'error');
-      $redirect_step = $checkout_flow_plugin->getPreviousStepId();
+      $redirect_step = $checkout_flow_plugin->getPreviousStepId('payment');
     }
     $checkout_flow_plugin->redirectToStep($redirect_step);
   }
