@@ -185,6 +185,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $transact = $request->get('transact');
     $authkey = $request->get('authkey');
     $orderId = $request->get('orderid');
+
     $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
     $configuration = $payment_gateway_plugin->getConfiguration();
     if ($orderId) {
@@ -223,9 +224,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->entityId,
       $this->getMode()
     );
-    if ($order->getState()->getName() == 'draft') {
+    if ($order->getState()->value == 'draft') {
       $transition = $order->getState()->getWorkflow()->getTransition('place');
       $order->getState()->applyTransition($transition);
+      $order->save();
     }
     return NULL;
   }
