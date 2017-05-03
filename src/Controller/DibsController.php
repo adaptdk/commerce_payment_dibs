@@ -95,18 +95,29 @@ class DibsController implements ContainerInjectionInterface {
     $checkout_flow = $commerce_order->checkout_flow->entity;
     $checkout_flow_plugin = $checkout_flow->getPlugin();
 
-    try {
-      $response = $payment_gateway_plugin->onReturn($commerce_order, $request);
-      if ($response) {
-        return $response;
+    $statusCode = $request->query->get('statuscode');
+    $configuration = $payment_gateway_plugin->getConfiguration();
+    $paymentSuccess = \Drupal::service('commerce_payment_dibs.transaction')->isPaymentStatusSuccess($configuration, $statusCode);
+    if (!$paymentSuccess) { //Payment was not approved
+      \Drupal::logger('DibsFailed')->notice("Payment status was not successful (returnCheckoutPage) - redirect to review: " . $statusCode);
+      $redirect_step = $checkout_flow_plugin->getPreviousStepId(); //Go back to preview step
+      $payment_gateway_plugin->onCancel($commerce_order, $request); //Make sure the order is not being processed
+    } else { //Success
+      \Drupal::logger('DibsSuccess')->notice("Payment status was fine (returnCheckoutPage) - redirect to payment: " . $statusCode);
+      try {
+        $response = $payment_gateway_plugin->onReturn($commerce_order, $request);
+        if ($response) {
+          return $response;
+        }
+        $redirect_step = $checkout_flow_plugin->getNextStepId('payment');
       }
-      $redirect_step = $checkout_flow_plugin->getNextStepId('payment');
+      catch (PaymentGatewayException $e) {
+        \Drupal::logger('commerce_payment')->error($e->getMessage());
+        drupal_set_message(t('Payment failed at the payment server. Please review your information and try again.'), 'error');
+        $redirect_step = $checkout_flow_plugin->getPreviousStepId('payment');
+      }
     }
-    catch (PaymentGatewayException $e) {
-      \Drupal::logger('commerce_payment')->error($e->getMessage());
-      drupal_set_message(t('Payment failed at the payment server. Please review your information and try again.'), 'error');
-      $redirect_step = $checkout_flow_plugin->getPreviousStepId('payment');
-    }
+    \Drupal::logger('commerce_payment_dibs')->notice('Redirect step: ' . $redirect_step);
     $checkout_flow_plugin->redirectToStep($redirect_step);
   }
 

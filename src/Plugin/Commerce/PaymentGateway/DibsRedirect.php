@@ -188,6 +188,15 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
 
     $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
     $configuration = $payment_gateway_plugin->getConfiguration();
+
+    $paymentSuccess = \Drupal::service('commerce_payment_dibs.transaction')->isPaymentStatusSuccess($configuration, $statusCode);
+    if (!$paymentSuccess) { //Payment failed - don't process the payment
+      \Drupal::logger('DibsFailed')->notice("Payment status was not successful (onNotify): " . $statusCode);
+      return NULL;
+    } else {
+      \Drupal::logger('DibsSuccess')->notice("Payment status was fine (onNotify): " . $statusCode);
+    }
+
     if ($orderId) {
       $orderId = urldecode($orderId);
       $orderId = str_replace($configuration['prefix'], '', $orderId);
@@ -232,4 +241,17 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     return NULL;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function onCancel(OrderInterface $order, Request $request) {
+    $statusCode = $request->query->get('statuscode');
+    if (isset($statusCode)) { //It must be due to a failed payment
+      drupal_set_message(t('Payment failed at the payment server. Please review your information and try again.'), 'error');
+    } else { //The user has cancelled the payment
+      drupal_set_message($this->t('You have canceled checkout at @gateway but may resume the checkout process here when you are ready.', [
+        '@gateway' => $this->getDisplayLabel(),
+      ]));
+    }
+  }
 }
