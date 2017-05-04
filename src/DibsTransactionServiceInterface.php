@@ -68,4 +68,17 @@ interface DibsTransactionServiceInterface {
    *   The credit card array.
    */
   public function getTypes();
+
+  /**
+   * Checks whether the received statuscode from DIBS is a success
+   *
+   * @param array $configuration
+   *   The DIBS configuration
+   * @param number $statusCode
+   *   The DIBS status code
+   *
+   * @return boolean
+   *    Whether the statuscode indicates success
+   */
+  public function isPaymentStatusSuccess($configuration, $statusCode);
 }
