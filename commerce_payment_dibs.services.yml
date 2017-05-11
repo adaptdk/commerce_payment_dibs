@@ -2,4 +2,6 @@ services:
   commerce_payment_dibs.transaction:
     class: Drupal\commerce_payment_dibs\DibsTransactionService
     arguments: ['@entity_type.manager']
-
+  commerce_payment_dibs.payment_functions:
+    class: Drupal\commerce_payment_dibs\Service\PaymentFunctions
+    arguments: ['@commerce_payment_dibs.transaction', '@http_client']

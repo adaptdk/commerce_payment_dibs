@@ -43,6 +43,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       'test' => FALSE,
       'creditcards' => [],
       'prefix' => '',
+      'api_username' => '',
+      'api_password' => '',
     ] + parent::defaultConfiguration();
   }
 
@@ -95,6 +97,19 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       '#description' => $this->t('If you have multiple sites paying via your DIBS account you can add a prefix to avoid duplicate order ids.'),
       '#default_value' => $this->configuration['prefix'],
     ];
+    $form['api_username'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Api user name'),
+      '#description' => $this->t(''),
+      '#default_value' => $this->configuration['api_username'],
+    ];
+    $form['api_password'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Api password'),
+      '#description' => $this->t(''),
+      '#default_value' => $this->configuration['api_password'],
+    ];
+
     $cards = \Drupal::service('commerce_payment_dibs.transaction')->getCreditCards();
     $creditcards = $this->configuration['creditcards'];
     foreach ($cards as $key => $card) {
@@ -124,6 +139,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->configuration['capture'] = $values['capturenow'];
       $this->configuration['creditcards'] = $values['creditcards'];
       $this->configuration['prefix'] = $values['prefix'];
+      $this->configuration['api_username'] = $values['api_username'];
+      $this->configuration['api_password'] = $values['api_password'];
     }
   }
 
