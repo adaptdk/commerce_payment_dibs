@@ -227,7 +227,6 @@ class PaymentFunctions {
    *   Response.
    */
   public function refundDibsPayment(Order $order, $amountToRefund) {
-$a =1;
     $options = [
       'merchant'  => $this->getConfigurationByKey('merchant'),
       'orderId'   => $this->getOrderIdComposed($order),
