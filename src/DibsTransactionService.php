@@ -80,7 +80,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       }
     }
     $payment->save();
-    drupal_set_message('Payment was processed');
+    drupal_set_message(t('Payment was processed'));
   }
 
   /**
