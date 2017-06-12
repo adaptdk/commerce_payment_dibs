@@ -22,3 +22,11 @@ function commerce_payment_dibs_help($route_name, RouteMatchInterface $route_matc
     default:
   }
 }
+
+/**
+ * Implements hook_entity_type_build().
+ */
+function commerce_payment_dibs_entity_type_build(array &$entity_types) {
+  // Override the commerce shipment class with the one from this module.
+  $entity_types['commerce_payment']->setClass('\Drupal\commerce_payment_dibs\Entity\Payment');
+}

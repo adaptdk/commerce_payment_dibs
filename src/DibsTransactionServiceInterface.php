@@ -16,12 +16,20 @@ interface DibsTransactionServiceInterface {
    *
    * @param Order $order
    *   The order to process.
-   * @param number $transactionId
+   * @param int $transactionId
    *   The transation id.
-   * @param str $statusCode
+   * @param string $statusCode
    *   The status codeDibsRedirect
+   * @param int $payment_gateway_id
+   *   Gateway id.
+   * @param string $mode
+   *   Mode, test or prod.
+   * @param string $paytype
+   *   Payment type.
+   *
+   * @return
    */
-  public function processPayment(Order $order, $transactionId, $statusCode, $payment_gateway_id, $mode);
+  public function processPayment(Order $order, $transactionId, $statusCode, $payment_gateway_id, $mode, $paytype);
 
   /**
    * Format a price according to dibs requirements.
@@ -67,7 +75,7 @@ interface DibsTransactionServiceInterface {
    * @return array
    *   The credit card array.
    */
-  public function getTypes();
+  public static function getTypes();
 
   /**
    * Checks whether the received statuscode from DIBS is a success

@@ -2,7 +2,7 @@
 
 namespace Drupal\commerce_payment_dibs;
 
-use Drupal\commerce_payment\Entity\Payment;
+use Drupal\commerce_payment_dibs\Entity\Payment;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\commerce_payment_dibs\Event\DibsCreditCardEvent;
@@ -36,7 +36,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
   /**
    * {@inheritdoc}
    */
-  public function processPayment(Order $order, $transactionId, $statusCode, $payment_gateway_id, $mode) {
+  public function processPayment(Order $order, $transactionId, $statusCode, $payment_gateway_id, $mode, $paytype) {
     $query = \Drupal::entityQuery('commerce_payment')
       ->condition('remote_id', $transactionId)
       ->condition('order_id', $order->id());
@@ -44,14 +44,16 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
     $payments = $query->execute();
     if (empty($payments)) {
       $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+      /** @var \Drupal\commerce_payment_dibs\Entity\Payment $payment */
       $payment = $payment_storage->create([
         'state' => 'authorization',
         'amount' => $order->getTotalPrice(),
         'payment_gateway' => $payment_gateway_id,
         'order_id' => $order->id(),
-        'test' => $mode == 'test',
+        'test' => $mode === 'test',
         'remote_id' => ($transactionId) ? $transactionId : '',
         'remote_state' => ($statusCode) ? $statusCode: '',
+        'payment_type' => $paytype
       ]);
       if ($statusCode == '2') {
         $payment->setAuthorizedTime(REQUEST_TIME);
@@ -68,6 +70,8 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       $payment = Payment::load(current($payment_ids));
       $payment->setRemoteId($transactionId);
       $payment->setRemoteState($statusCode);
+      $payment->setPaymentType($paytype);
+
       if ($statusCode == '2') {
         $payment->setAuthorizedTime(REQUEST_TIME);
         $transition = $payment->getState()->getWorkflow()->getTransition('authorize');
@@ -159,7 +163,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
    * {@inheritdoc}
    */
   public function getCreditCards() {
-    $credit_cards = $this->getTypes();
+    $credit_cards = self::getTypes();
     $evt = new DibsCreditCardEvent($credit_cards);
     $dispatcher = \Drupal::service('event_dispatcher');
     $event = $dispatcher->dispatch(DibsCreditCardEvent::DISCOVER, $evt);
@@ -170,7 +174,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
   /**
    * {@inheritdoc}
    */
-  public function getTypes() {
+  public static function getTypes() {
     return [
       'DK' => 'Dankort',
       'V-DK' => 'VISA-Dankort',

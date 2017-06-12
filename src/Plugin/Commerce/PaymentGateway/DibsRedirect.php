@@ -188,7 +188,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $transact,
       $statusCode,
       $this->entityId,
-      $this->getMode()
+      $this->getMode(),
+      $request->get('paytype')
     );
     return NULL;
   }
@@ -248,7 +249,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $transact,
       $statusCode,
       $this->entityId,
-      $this->getMode()
+      $this->getMode(),
+      $request->get('paytype')
     );
 //    if ($order->getState()->value == 'draft') {
 //      $transition = $order->getState()->getWorkflow()->getTransition('place');
