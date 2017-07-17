@@ -48,7 +48,10 @@ class Payment extends CommercePayment {
    *   Type.
    */
   public function getPaymentType(){
-    return $this->get('payment_type')->first()->value;
+    if (!$this->get('payment_type')->isEmpty()) {
+      return $this->get('payment_type')->first()->value;
+    }
+    return '';
   }
 
   /**
