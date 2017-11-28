@@ -8,6 +8,7 @@ use Drupal\commerce_payment\Entity\PaymentGateway;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
 use Drupal\commerce_price\Entity\Currency;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Logger\LoggerChannelTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Url;
@@ -29,6 +30,8 @@ use Drupal\Core\Url;
  * )
  */
 class DibsRedirect extends OffsitePaymentGatewayBase {
+
+  use LoggerChannelTrait;
 
   /**
    * {@inheritdoc}
@@ -152,7 +155,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $statusCode = $request->query->get('statuscode');
     $transact = $request->query->get('transact');
     if (!$transact) {
-      \Drupal::logger('commerce_payment_dibs')->error("Transaction not found.");
+      $this->getLogger('Dibs')->error("Transaction not found.");
       $url = Url::fromRoute('commerce_payment_dibs.dibspayment', [
         'commerce_order' => $order->id(),
       ])->toString();
@@ -163,6 +166,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $currency = Currency::load($currencyCode);
     $price = $order->getTotalPrice()->getNumber();
+    if ($request->get('fee') != '') {
+      $fee = new Price((string) $request->get('fee'), $currency->getNumericCode());
+      $price = $price->add($fee);
+    }
     $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
     $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
     $configuration = $payment_gateway_plugin->getConfiguration();
@@ -173,16 +180,11 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $currency->getNumericCode(),
       $total
     );
-    \Drupal::logger('commerce_payment_dibs')->notice(json_encode([
-      $configuration,
-      $transact,
-      $currency->getNumericCode(),
-      $total,
-    ]));
-//    if ($md5 !== $authkey) {
-//      \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $orderId]);
-//      return NULL;
-//    }
+    if ($md5 !== $authkey) {
+      $message = $this->t("Unable to process payment since authentication keys didn't match");
+      $this->getLogger('DibsAuthenticationFailed')->error($message, ['orderId' => $orderId]);
+      return NULL;
+    }
     \Drupal::service('commerce_payment_dibs.transaction')->processPayment(
       $order,
       $transact,
@@ -209,10 +211,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
 
     $paymentSuccess = \Drupal::service('commerce_payment_dibs.transaction')->isPaymentStatusSuccess($configuration, $statusCode);
     if (!$paymentSuccess) { //Payment failed - don't process the payment
-      \Drupal::logger('DibsFailed')->notice("Payment status was not successful (onNotify): " . $statusCode);
+      $this->getLogger('DibsFailed')->notice("Payment status was not successful (onNotify): " . $statusCode);
       return NULL;
     } else {
-      \Drupal::logger('DibsSuccess')->notice("Payment status was fine (onNotify): " . $statusCode);
+      $this->getLogger('DibsSuccess')->notice("Payment status was fine (onNotify): " . $statusCode);
     }
 
     if ($orderId) {
@@ -225,13 +227,16 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $order = \Drupal::service('entity.repository')->loadEntityByUuid('commerce_order', $order_uuid);
     }
     if (!$order) {
-      \Drupal::logger('DibsFailed')->notice("Order not found.");
-      \Drupal::logger('DibsFailed')->notice(serialize($request->getContent()));
+      $this->getLogger('DibsFailed')->notice("Order not found.");
       return NULL;
     }
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $currency = Currency::load($currencyCode);
     $price = $order->getTotalPrice()->getNumber();
+    if ($request->get('fee') != '') {
+      $fee = new Price((string) $request->get('fee'), $currency->getNumericCode());
+      $price = $price->add($fee);
+    }
     $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
     $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getAuthKey(
       $configuration,
@@ -239,11 +244,11 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $currency->getNumericCode(),
       $total
     );
-    \Drupal::logger('commerce_payment_dibs')->notice($md5 . ' == ' . $authkey);
-//    if (FALSE && $md5 !== $authkey) {
-//      \Drupal::logger('commerce_payment_dibs')->error($this->t("Unable to process payment since authentication keys didn't match"), ['orderId' => $order->id()]);
-//      return NULL;
-//    }
+    if ($md5 !== $authkey) {
+      $message = $this->t("Unable to process payment since authentication keys didn't match");
+      $this->getLogger('DibsAuthenticationFailed')->error($message, ['orderId' => $order->id()]);
+      return NULL;
+    }
     \Drupal::service('commerce_payment_dibs.transaction')->processPayment(
       $order,
       $transact,

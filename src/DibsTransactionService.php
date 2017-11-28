@@ -206,7 +206,6 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
    * {@inheritdoc}
    */
   public function isPaymentStatusSuccess($configuration, $statusCode) {
-    \Drupal::logger('PaymentStatus')->notice("Verifying statusCode: " . $statusCode . ' with configuration[capture]: ' . $configuration['capture']);
     if ($configuration['capture']) { //Dibs capture success is 5
       return $statusCode == 5;
     } else { //We assume we want an authorization. Dibs auth success is 2
