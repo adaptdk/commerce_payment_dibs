@@ -5,11 +5,17 @@ namespace Drupal\commerce_payment_dibs\Plugin\Commerce\PaymentGateway;
 use Drupal\commerce_order\Entity\Order;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentGateway;
+use Drupal\commerce_payment\PaymentMethodTypeManager;
+use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
+use Drupal\commerce_payment_dibs\DibsTransactionServiceInterface;
 use Drupal\commerce_price\Entity\Currency;
 use Drupal\commerce_price\Price;
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Logger\LoggerChannelTrait;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Url;
@@ -33,6 +39,47 @@ use Drupal\Core\Url;
 class DibsRedirect extends OffsitePaymentGatewayBase {
 
   use LoggerChannelTrait;
+
+  public $transationService;
+
+  /**
+   * Constructs a new PaymentGatewayBase object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param \Drupal\commerce_payment\PaymentTypeManager $payment_type_manager
+   *   The payment type manager.
+   * @param \Drupal\commerce_payment\PaymentMethodTypeManager $payment_method_type_manager
+   *   The payment method type manager.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, DibsTransactionServiceInterface $transactionService) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager, $time);
+    $this->transationService = $transactionService;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('entity_type.manager'),
+      $container->get('plugin.manager.commerce_payment_type'),
+      $container->get('plugin.manager.commerce_payment_method_type'),
+      $container->get('datetime.time'),
+      $container->get('commerce_payment_dibs.transaction')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -114,7 +161,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       '#default_value' => $this->configuration['api_password'],
     ];
 
-    $cards = \Drupal::service('commerce_payment_dibs.transaction')->getCreditCards();
+    $cards = $this->transationService->getCreditCards();
     $creditcards = $this->configuration['creditcards'];
     foreach ($cards as $key => $card) {
       $form['creditcards'][$key] = [
@@ -156,37 +203,30 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $statusCode = $request->query->get('statuscode');
     $transact = $request->query->get('transact');
     if (!$transact) {
-      $this->getLogger('Dibs')->error("Transaction not found.");
-      $url = Url::fromRoute('commerce_payment_dibs.dibspayment', [
-        'commerce_order' => $order->id(),
-      ])->toString();
-      $redirect = new RedirectResponse($url);
-      return $redirect;
+      return $this->getRedirectResponse($order);
     }
     $authkey = $request->query->get('authkey');
+    $total = $this->getCalculationAmount($order, $request);
+    // Get configuration.
+    $configuration = $this->getConfiguration();
+    // Setup variables for validation.
+    $orderId = $configuration['prefix'] . $order->id();
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $currency = Currency::load($currencyCode);
-    $price = $order->getTotalPrice()->getNumber();
-    if ($request->get('fee') != '') {
-      $fee = new Price((string) $request->get('fee'), $currency->getNumericCode());
-      $price = $price->add($fee);
-    }
-    $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
-    $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
-    $configuration = $payment_gateway_plugin->getConfiguration();
-    $orderId = $configuration['prefix'] . $order->id();
-    $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getAuthKey(
+    // generate md5 key.
+    $md5 = $this->transationService->getAuthKey(
       $configuration,
       $transact,
       $currency->getNumericCode(),
       $total
     );
+    // Compare keys.
     if ($md5 !== $authkey) {
       $message = $this->t("Unable to process payment since authentication keys didn't match");
       $this->getLogger('DibsAuthenticationFailed')->error($message, ['orderId' => $orderId]);
       return NULL;
     }
-    \Drupal::service('commerce_payment_dibs.transaction')->processPayment(
+    $this->transationService->processPayment(
       $order,
       $transact,
       $statusCode,
@@ -207,10 +247,10 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $authkey = $request->get('authkey');
     $orderId = $request->get('orderid');
 
-    $payment_gateway_plugin = PaymentGateway::load($this->entityId)->getPlugin();
-    $configuration = $payment_gateway_plugin->getConfiguration();
+    // Get configuration.
+    $configuration = $this->getConfiguration();
 
-    $paymentSuccess = \Drupal::service('commerce_payment_dibs.transaction')->isPaymentStatusSuccess($configuration, $statusCode);
+    $paymentSuccess = $this->transationService->isPaymentStatusSuccess($configuration, $statusCode);
     if (!$paymentSuccess) { //Payment failed - don't process the payment
       $this->getLogger('DibsFailed')->notice("Payment status was not successful (onNotify): " . $statusCode);
       return NULL;
@@ -231,26 +271,24 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->getLogger('DibsFailed')->notice("Order not found.");
       return NULL;
     }
+    $total = $this->getCalculationAmount($order, $request);
+    // Setup variables for validation.
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $currency = Currency::load($currencyCode);
-    $price = $order->getTotalPrice()->getNumber();
-    if ($request->get('fee') != '') {
-      $fee = new Price((string) $request->get('fee'), $currency->getNumericCode());
-      $price = $price->add($fee);
-    }
-    $total = \Drupal::service('commerce_payment_dibs.transaction')->formatPrice($price, $currencyCode);
-    $md5 = \Drupal::service('commerce_payment_dibs.transaction')->getAuthKey(
+    // generate md5 key.
+    $md5 = $this->transationService->getAuthKey(
       $configuration,
       $transact,
       $currency->getNumericCode(),
       $total
     );
+    // Compare keys.
     if ($md5 !== $authkey) {
       $message = $this->t("Unable to process payment since authentication keys didn't match");
       $this->getLogger('DibsAuthenticationFailed')->error($message, ['orderId' => $order->id()]);
       return NULL;
     }
-    \Drupal::service('commerce_payment_dibs.transaction')->processPayment(
+    $this->transationService->processPayment(
       $order,
       $transact,
       $statusCode,
@@ -258,11 +296,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->getMode(),
       $request->get('paytype')
     );
-//    if ($order->getState()->value == 'draft') {
-//      $transition = $order->getState()->getWorkflow()->getTransition('place');
-//      $order->getState()->applyTransition($transition);
-//      $order->save();
-//    }
     return NULL;
   }
 
@@ -278,5 +311,27 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
         '@gateway' => $this->getDisplayLabel(),
       ]));
     }
+  }
+
+  protected function getRedirectResponse(OrderInterface $order) {
+    $this->getLogger('Dibs')->error("Transaction not found.");
+    $url = Url::fromRoute('commerce_payment_dibs.dibspayment', [
+      'commerce_order' => $order->id(),
+    ])->toString();
+    $redirect = new RedirectResponse($url);
+    return $redirect;
+  }
+
+  protected function getCalculationAmount(OrderInterface $order, Request $request) {
+    $currencyCode = $order->getTotalPrice()->getCurrencyCode();
+    $currency = Currency::load($currencyCode);
+    $price = new Price((string) $request->get('amount'), $currency->getCurrencyCode());
+    if ($request->get('calcfee') == 1 && $request->get('fee') != '') {
+      $this->getLogger('dibs')->notice($request->get('fee'));
+      $fee = new Price((string) $request->get('fee'), $currency->getCurrencyCode());
+      $price = $price->add($fee);
+    }
+    $total = $this->transationService->formatPrice($price->getNumber(), $currencyCode);
+    return $total;
   }
 }
