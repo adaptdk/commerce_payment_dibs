@@ -8,6 +8,7 @@ use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\commerce_payment_dibs\Event\DibsCreditCardEvent;
 use Drupal\commerce_order\Entity\Order;
 use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Class DibsTransactionService.
@@ -15,6 +16,8 @@ use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
  * @package Drupal\commerce_payment_dibs
  */
 class DibsTransactionService extends DefaultPluginManager implements DibsTransactionServiceInterface {
+
+  Use StringTranslationTrait;
 
   /**
    * @var \Drupal\commerce_payment\Entity\Payment
@@ -84,23 +87,18 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       }
     }
     $payment->save();
-    drupal_set_message(t('Payment was processed'));
+    drupal_set_message($this->t('Payment was processed'));
   }
 
   /**
    * {@inheritdoc}
    */
   public function formatPrice($number, $currencyCode) {
-    /** @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $currency_storage */
-    $currency_storage = $this->entityTypeManager->getStorage('commerce_currency');
     /** @var \CommerceGuys\Intl\Formatter\NumberFormatterInterface $number_formatter */
     $number_formatter_factory = \Drupal::service('commerce_price.number_formatter_factory');
     $number_formatter = $number_formatter_factory->createInstance(NumberFormatterInterface::DECIMAL);
     $number_formatter->setMaximumFractionDigits(6);
     $number_formatter->setGroupingUsed(FALSE);
-    /** @var \Drupal\commerce_price\Entity\CurrencyInterface[] $currencies */
-    $currencies = $currency_storage->loadMultiple();
-    $currency = $currencies[$currencyCode];
     $number_formatter->setMinimumFractionDigits(2);
     $total = $number_formatter->format($number);
     $total = str_replace(',', '', $total);
@@ -122,7 +120,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
     ];
 
     $parameter_string = http_build_query($parameters);
-    return MD5($key2 . MD5($key1 . $parameter_string));
+    return $this->getMd5Hash($key1, $key2, $parameter_string);
   }
 
   /**
@@ -131,7 +129,6 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
   public function getAuthKey($configuration, $transaction, $currency, $amount) {
     $key1 = $configuration['md5key1'];
     $key2 = $configuration['md5key2'];
-    $merchant = $configuration['merchant'];
     $parameters = [
       'transact' => $transaction,
       'amount' => $amount,
@@ -139,7 +136,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
     ];
 
     $parameter_string = http_build_query($parameters);
-    return MD5($key2 . MD5($key1 . $parameter_string));
+    return $this->getMd5Hash($key1, $key2, $parameter_string);
   }
 
   /**
@@ -202,14 +199,18 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
     ];
   }
 
+  protected function getMd5Hash($key1, $key2, $parameter_string) {
+    return MD5($key2 . MD5($key1 . $parameter_string));
+  }
+
   /**
    * {@inheritdoc}
    */
   public function isPaymentStatusSuccess($configuration, $statusCode) {
     if ($configuration['capture']) { //Dibs capture success is 5
-      return $statusCode == 5;
+      return $statusCode == DibsCallbackStatus::CAPTURE_COMPLETED;
     } else { //We assume we want an authorization. Dibs auth success is 2
-      return $statusCode ==  2;
+      return $statusCode ==  DibsCallbackStatus::APPROVED;
     }
   }
 }

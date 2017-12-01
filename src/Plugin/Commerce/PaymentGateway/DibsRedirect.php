@@ -305,7 +305,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
   public function onCancel(OrderInterface $order, Request $request) {
     $statusCode = $request->query->get('statuscode');
     if (isset($statusCode)) { //It must be due to a failed payment
-      drupal_set_message(t('Payment failed at the payment server. Please review your information and try again.'), 'error');
+      drupal_set_message($this->t('Payment failed at the payment server. Please review your information and try again.'), 'error');
     } else { //The user has cancelled the payment
       drupal_set_message($this->t('You have canceled checkout at @gateway but may resume the checkout process here when you are ready.', [
         '@gateway' => $this->getDisplayLabel(),
@@ -313,6 +313,11 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     }
   }
 
+  /**
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   */
   protected function getRedirectResponse(OrderInterface $order) {
     $this->getLogger('Dibs')->error("Transaction not found.");
     $url = Url::fromRoute('commerce_payment_dibs.dibspayment', [
@@ -322,16 +327,27 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     return $redirect;
   }
 
+  /**
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *
+   * @return number
+   */
   protected function getCalculationAmount(OrderInterface $order, Request $request) {
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $currency = Currency::load($currencyCode);
-    $price = new Price((string) $request->get('amount'), $currency->getCurrencyCode());
-    if ($request->get('calcfee') == 1 && $request->get('fee') != '') {
-      $this->getLogger('dibs')->notice($request->get('fee'));
-      $fee = new Price((string) $request->get('fee'), $currency->getCurrencyCode());
+    $amount = $request->get('amount');
+    if ($amount === NULL) {
+      $amount = $order->getTotalPrice()->getNumber();
+    }
+    $calcFee = $request->get('calcfee');
+    $fee = $request->get('fee');
+    $price = new Price((string) $amount, $currency->getCurrencyCode());
+    if ($calcFee == 1 && $fee != '') {
+      $fee = new Price((string) $fee, $currency->getCurrencyCode());
       $price = $price->add($fee);
     }
-    $total = $this->transationService->formatPrice($price->getNumber(), $currencyCode);
+    $total = $this->transationService->formatPrice((int) $price->getNumber(), $currencyCode);
     return $total;
   }
 }
