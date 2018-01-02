@@ -217,7 +217,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $authkey = $request->query->get('authkey');
     // Calculate total.
     $total = $this->getTotalAmount($order, $request);
-    $this->getLogger('dibs')->info("Total: " . $total);
     // Get configuration.
     $configuration = $this->getConfiguration();
     // Setup variables for validation.
@@ -225,7 +224,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $currency = Currency::load($currencyCode);
     // generate md5 key.
-    $this->getLogger('dibs')->info('Calculation variables: ' . $transact . ' : ' . $currency->getNumericCode() . ' : ' . $total);
     $md5 = $this->transationService->getAuthKey(
       $configuration,
       $transact,
@@ -266,8 +264,6 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     if (!$paymentSuccess) { //Payment failed - don't process the payment
       $this->getLogger('DibsFailed')->notice("Payment status was not successful (onNotify): " . $statusCode);
       return NULL;
-    } else {
-      $this->getLogger('DibsSuccess')->notice("Payment status was fine (onNotify): " . $statusCode);
     }
 
     if ($orderId) {
@@ -358,10 +354,9 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     if ($amount === NULL) {
       $amount = $order->getTotalPrice()->getNumber();
     }
-    $calcFee = $request->get('calcfee');
     $fee = $request->get('fee');
     // Calculate total.
-    $total = $this->getCalculationAmount($currencyCode, $amount, $calcFee, $fee);
+    $total = $this->getCalculationAmount($currencyCode, $amount, $fee);
     return $total;
   }
 
@@ -372,17 +367,15 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
    *   The currency code.
    * @param string $amount
    *   The order amount.
-   * @param bool $calcFee
-   *   Should the fee be added to the calculation.
    * @param string $fee
    *   The credit card fee.
    *
    * @return number
    *   The calculated total.
    */
-  protected function getCalculationAmount($currencyCode, $amount, $calcFee, $fee) {
+  protected function getCalculationAmount($currencyCode, $amount, $fee) {
     $price = new Price((string) $amount, $currencyCode);
-    if ($calcFee == 1 && $fee != '') {
+    if ($fee != '') {
       $fee = new Price((string) $fee, $currencyCode);
       $price = $price->add($fee);
     }

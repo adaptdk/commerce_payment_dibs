@@ -39,7 +39,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
   /**
    * {@inheritdoc}
    */
-  public function processPayment(Order $order, $transactionId, $statusCode, $payment_gateway_id, $mode, $paytype) {
+  public function processPayment(OrderInterface $order, $transactionId, $statusCode, $payment_gateway_id, $mode, $paytype) {
     $query = \Drupal::entityQuery('commerce_payment')
       ->condition('remote_id', $transactionId)
       ->condition('order_id', $order->id());
@@ -135,6 +135,7 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       'currency' => $currency,
     ];
     $parameter_string = http_build_query($parameters);
+
     return $this->getMd5Hash($key1, $key2, $parameter_string);
   }
 

@@ -39,7 +39,7 @@ class DibsRedirectTest extends CommerceKernelTestBase {
     // Get method.
     $method = $this->getMethod($dibsRedirectClass, 'getCalculationAmount');
     // Invoke method.
-    $total = $method->invokeArgs($dibsRedirect, ['DKK', '23000', TRUE, '139']);
+    $total = $method->invokeArgs($dibsRedirect, ['DKK', '23000', '139']);
     $this->assertEquals('23139', $total);
   }
 

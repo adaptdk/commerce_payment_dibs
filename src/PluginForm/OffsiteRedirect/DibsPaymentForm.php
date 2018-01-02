@@ -6,6 +6,7 @@ use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm;
 use Drupal\commerce_payment_dibs\DibsLanguages;
 use Drupal\commerce_payment_dibs\DibsUrls;
 use Drupal\commerce_payment_dibs\Event\DibsInformationEvent;
+use Drupal\commerce_price\Entity\Currency;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
@@ -49,6 +50,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       $currencyCode,
       $total
     );
+    $currency = Currency::load($currencyCode);
     // Get order language.
     $orderLanguage = \Drupal::languageManager()->getCurrentLanguage()->getId();
     // Set default values.
@@ -57,7 +59,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       'amount' => $total,
       'callbackurl' => $callbackUrl,
       'cancelurl' => $form['#cancel_url'],
-      'currency' => $currencyCode,
+      'currency' => $currency->getCurrencyCode(),
       'merchant' => $configuration['merchant'],
       'orderid' => $orderId,
       'billingAddress' => $billingAddress['address_line1'],
@@ -70,7 +72,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       'md5key' => $md5,
       'type' => 'flex',
       'decorator' => 'responsive',
-      'calcfee' => $configuration['calcfee'],
+      'calcfee' => ($configuration['calcfee']) ? 'yes' : 'no',
     ];
     if (in_array($orderLanguage, DibsLanguages::languages)) {
       $data['lang'] = $orderLanguage;
