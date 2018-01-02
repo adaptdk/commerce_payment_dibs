@@ -197,6 +197,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->configuration['capture'] = $values['capturenow'];
       $this->configuration['calcfee'] = $values['calcfee'];
       $this->configuration['api_password'] = $values['api_password'];
+      $this->configuration['creditcards'] = $values['creditcards'];
       $this->configuration['prefix'] = $values['prefix'];
       $this->configuration['api_username'] = $values['api_username'];
       $this->configuration['api_password'] = $values['api_password'];
