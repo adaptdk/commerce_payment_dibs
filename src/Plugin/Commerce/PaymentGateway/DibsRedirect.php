@@ -353,6 +353,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $amount = $request->get('amount');
     if ($amount === NULL || $amount === "") {
       $amount = $order->getTotalPrice()->getNumber();
+      $this->getLogger('dibs')->notice($amount);
+      $amount = number_format($amount, 2, '', '');
     }
     $fee = $request->get('fee');
     // Calculate total.
