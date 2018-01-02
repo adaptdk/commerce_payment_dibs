@@ -2,12 +2,13 @@
 
 namespace Drupal\commerce_payment_dibs;
 
+use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment_dibs\Entity\Payment;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\commerce_payment_dibs\Event\DibsCreditCardEvent;
 use Drupal\commerce_order\Entity\Order;
-use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
