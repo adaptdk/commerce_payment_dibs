@@ -96,6 +96,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       'prefix' => '',
       'api_username' => '',
       'api_password' => '',
+      'calcfee' => FALSE,
     ] + parent::defaultConfiguration();
   }
 
@@ -134,6 +135,12 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       '#title' => $this->t('Capture now'),
       '#description' => $this->t('Automatically capture the payment once authenticated.'),
       '#default_value' => $this->configuration['capturenow'],
+    ];
+    $form['calcfee'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Calculate fee'),
+      '#description' => $this->t('Automatically add the fee for the transaction to the payment.'),
+      '#default_value' => $this->configuration['calcfee'],
     ];
     $form['creditcards'] = [
       '#type' => 'fieldset',
@@ -188,7 +195,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->configuration['md5key1'] = $values['md5key1'];
       $this->configuration['md5key2'] = $values['md5key2'];
       $this->configuration['capture'] = $values['capturenow'];
-      $this->configuration['creditcards'] = $values['creditcards'];
+      $this->configuration['calcfee'] = $values['calcfee'];
+      $this->configuration['api_password'] = $values['api_password'];
       $this->configuration['prefix'] = $values['prefix'];
       $this->configuration['api_username'] = $values['api_username'];
       $this->configuration['api_password'] = $values['api_password'];
@@ -206,7 +214,9 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       return $this->getRedirectResponse($order);
     }
     $authkey = $request->query->get('authkey');
-    $total = $this->getCalculationAmount($order, $request);
+    // Calculate total.
+    $total = $this->getTotalAmount($order, $request);
+    $this->getLogger('dibs')->info("Total: " . $total);
     // Get configuration.
     $configuration = $this->getConfiguration();
     // Setup variables for validation.
@@ -214,6 +224,7 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $currency = Currency::load($currencyCode);
     // generate md5 key.
+    $this->getLogger('dibs')->info('Calculation variables: ' . $transact . ' : ' . $currency->getNumericCode() . ' : ' . $total);
     $md5 = $this->transationService->getAuthKey(
       $configuration,
       $transact,
@@ -271,7 +282,8 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
       $this->getLogger('DibsFailed')->notice("Order not found.");
       return NULL;
     }
-    $total = $this->getCalculationAmount($order, $request);
+    // Calculate total.
+    $total = $this->getTotalAmount($order, $request);
     // Setup variables for validation.
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
     $currency = Currency::load($currencyCode);
@@ -328,26 +340,55 @@ class DibsRedirect extends OffsitePaymentGatewayBase {
   }
 
   /**
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   * @param \Symfony\Component\HttpFoundation\Request $request
+   * Get the total amount.
    *
-   * @return number
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The current order.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request.
+   *
+   * @return int
+   *   A formatted price.
    */
-  protected function getCalculationAmount(OrderInterface $order, Request $request) {
+  protected function getTotalAmount(OrderInterface $order, Request $request) {
+    // Set values for calculating amount.
     $currencyCode = $order->getTotalPrice()->getCurrencyCode();
-    $currency = Currency::load($currencyCode);
     $amount = $request->get('amount');
     if ($amount === NULL) {
       $amount = $order->getTotalPrice()->getNumber();
     }
     $calcFee = $request->get('calcfee');
     $fee = $request->get('fee');
-    $price = new Price((string) $amount, $currency->getCurrencyCode());
+    // Calculate total.
+    $total = $this->getCalculationAmount($currencyCode, $amount, $calcFee, $fee);
+    return $total;
+  }
+
+  /**
+   * Get the calculated total amount.
+   * 
+   * @param string $currencyCode
+   *   The currency code.
+   * @param string $amount
+   *   The order amount.
+   * @param bool $calcFee
+   *   Should the fee be added to the calculation.
+   * @param string $fee
+   *   The credit card fee.
+   *
+   * @return number
+   *   The calculated total.
+   */
+  protected function getCalculationAmount($currencyCode, $amount, $calcFee, $fee) {
+    $price = new Price((string) $amount, $currencyCode);
     if ($calcFee == 1 && $fee != '') {
-      $fee = new Price((string) $fee, $currency->getCurrencyCode());
+      $fee = new Price((string) $fee, $currencyCode);
       $price = $price->add($fee);
     }
-    $total = $this->transationService->formatPrice((int) $price->getNumber(), $currencyCode);
+    $total = $price->getNumber();
+    if (strpos($total, '.')) {
+      $total = number_format($total, 2, '', '');
+    }
     return $total;
   }
 }

@@ -70,7 +70,7 @@ class DibsPaymentForm extends PaymentOffsiteForm {
       'md5key' => $md5,
       'type' => 'flex',
       'decorator' => 'responsive',
-      'calcfee' => '1',
+      'calcfee' => $configuration['calcfee'],
     ];
     if (in_array($orderLanguage, DibsLanguages::languages)) {
       $data['lang'] = $orderLanguage;

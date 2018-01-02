@@ -134,7 +134,6 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
       'amount' => $amount,
       'currency' => $currency,
     ];
-
     $parameter_string = http_build_query($parameters);
     return $this->getMd5Hash($key1, $key2, $parameter_string);
   }
