@@ -2,7 +2,6 @@
 
 namespace Drupal\commerce_payment_dibs;
 
-use CommerceGuys\Intl\Formatter\NumberFormatterInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment_dibs\Entity\Payment;
 use Drupal\commerce_payment_dibs\Event\DibsCreditCardEvent;
@@ -95,13 +94,14 @@ class DibsTransactionService extends DefaultPluginManager implements DibsTransac
    * {@inheritdoc}
    */
   public function formatPrice($number, $currencyCode) {
-    /** @var \CommerceGuys\Intl\Formatter\NumberFormatterInterface $number_formatter */
-    $number_formatter_factory = \Drupal::service('commerce_price.number_formatter_factory');
-    $number_formatter = $number_formatter_factory->createInstance(NumberFormatterInterface::DECIMAL);
-    $number_formatter->setMaximumFractionDigits(6);
-    $number_formatter->setGroupingUsed(FALSE);
-    $number_formatter->setMinimumFractionDigits(2);
-    $total = $number_formatter->format($number);
+    $currency_formatter = \Drupal::service('commerce_price.currency_formatter');
+    $options = [
+      'use_grouping' => FALSE,
+      'minimum_fraction_digits' => 2,
+      'maximum_fraction_digits' => 2,
+      'currency_display' => 'none',
+    ];
+    $total = $currency_formatter->format($number, $currencyCode, $options);
     $total = str_replace(',', '', $total);
     return $total;
   }
